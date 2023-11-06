@@ -1,0 +1,32 @@
+body {
+    font-family: Arial, sans-serif;
+}
+
+.calendar {
+    display: inline-block;
+    border: 1px solid #ccc;
+}
+
+.header span,
+.days span {
+    display: inline-block;
+    width: 40px;
+    height: 40px;
+    line-height: 40px;
+    text-align: center;
+    border: 1px solid #ccc;
+}
+
+.header span {
+    font-weight: bold;
+    background-color: #f7f7f7;
+}
+
+.days span {
+    vertical-align: top;
+}
+
+.days span.today {
+    background-color: #e0e0e0;
+}
+
