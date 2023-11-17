@@ -30,3 +30,10 @@ body {
     background-color: #e0e0e0;
 }
 
+.days span.weekend {
+    background-color: #959393;
+}
+
+.days span.selected {
+    background-color: green;
+}
