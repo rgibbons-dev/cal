@@ -1,6 +1,11 @@
 import { calculateOptimalTicket } from './tickets.mjs';
 
-// Function to display the selected optimal ticket in the UI
+/**
+ * Function to display the selected optimal ticket in the UI
+ * 
+ * @param {string} ticketType - The optimal ticket type
+ * @returns {void}
+ */
 function displayOptimalTicket(ticketType) {
     const recommendationElement = document.getElementById('ticket-recommendation');
     recommendationElement.textContent = 'Recommended Ticket: ' + ticketType;
@@ -9,7 +14,11 @@ function displayOptimalTicket(ticketType) {
 // Initialize an array to store the selected days
 let selectedDates = [];
 
-// Function to update the display of selected days
+/**
+ * Function to update the display of selected days
+ * 
+ * @returns {void}
+ */
 function updateselectedDatesDisplay() {
     const displayElement = document.getElementById('selected-days');
     if (selectedDates.length > 0) {
@@ -20,6 +29,11 @@ function updateselectedDatesDisplay() {
     }
 }
 
+/**
+ * Function to update the display of selected days
+ * 
+ * @returns {void}
+ */
 function consolidateRoundTrips(optimalTickets) {
     const ticketCounts = optimalTickets.reduce((counts, ticket) => {
         counts[ticket] = (counts[ticket] || 0) + 1;
@@ -34,9 +48,16 @@ function consolidateRoundTrips(optimalTickets) {
 // Event listener for DOMContentLoaded to set up the calendar
 document.addEventListener('DOMContentLoaded', () => {
     const daysContainer = document.querySelector('.days');
+    let endDay;
     let currentDate = new Date();
-    const endDay = new Date(currentDate);
-    endDay.setDate(endDay.getDate() + 30);
+    if (currentDate.getDate() <= 9) {
+        // If the current day is 14th or earlier, show the next 30 days
+        endDay = new Date(currentDate);
+        endDay.setDate(endDay.getDate() + 30);
+    } else {
+        // If the current day is 15th or later, show until the end of the following month
+        endDay = new Date(currentDate.getFullYear(), currentDate.getMonth() + 2, 0);
+    }
 
     let init = true;
 
