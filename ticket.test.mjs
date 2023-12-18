@@ -6,7 +6,9 @@ import {
     getAdditionalRoundTrips,
     findWeeklyWindow,
     isWeeklyPassApplicable,
-    calculateOptimalTicket } from './tickets.mjs';
+    calculateOptimalTicket,
+    filterDatesOutsideMonthlyPass
+ } from './tickets.mjs';
 
 // Test cases for hasContinuousSpan
 test('hasContinuousSpan with continuous dates', () => {
@@ -317,7 +319,7 @@ test('calculateOptimalTicket with Monthly Pass and Weekly Pass', () => {
     }
     
     // Add a specific week in February (Monday to Friday)
-    for (let day = 1; day <= 5; day++) {
+    for (let day = 6; day <= 10; day++) {
         selectedDates.push(new Date(2023, 1, day)); // First week of February 2023
     }
 
@@ -331,10 +333,30 @@ test('calculateOptimalTicket with Monthly Pass and Flex Pass', () => {
         selectedDates.push(new Date(2023, 0, day)); // January 2023
     }
 
-    // Add 9 consecutive days in February
-    for (let day = 6; day <= 14; day++) {
-        selectedDates.push(new Date(2023, 1, day)); // February 6 to 14, 2023
+    // Add 9 days in February
+    for (let day = 6; day <= 9; day++) {
+        selectedDates.push(new Date(2023, 1, day)); // February 6 to 10, 2023
     }
+    for (let day = 13; day <= 16; day++) {
+        selectedDates.push(new Date(2023, 1, day)); // February 13 to 17, 2023
+    }
+    selectedDates.push(new Date(2023, 1, 20));
 
     assert.deepStrictEqual(calculateOptimalTicket(selectedDates), ['Monthly Pass', 'Flex Pass']);
+});
+
+test('should return an empty array when all dates fall under the month of the Monthly Pass', () => {
+    const selectedDates = [new Date(2022, 1, 1), new Date(2022, 1, 15), new Date(2022, 1, 28)];
+    const monthlyPassMonth = new Date(2022, 1, 1);
+    const result = filterDatesOutsideMonthlyPass(selectedDates, monthlyPassMonth);
+    assert.equal(result.length, 0);
+});
+
+test('should return an array with dates that do not fall under the month of the Monthly Pass', () => {
+    const selectedDates = [new Date(2022, 1, 1), new Date(2022, 2, 15), new Date(2022, 3, 28)];
+    const monthlyPassMonth = new Date(2022, 1, 1);
+    const result = filterDatesOutsideMonthlyPass(selectedDates, monthlyPassMonth);
+    assert.equal(result.length, 2);
+    assert.equal(result[0].getTime(), new Date(2022, 2, 15).getTime());
+    assert.equal(result[1].getTime(), new Date(2022, 3, 28).getTime());
 });

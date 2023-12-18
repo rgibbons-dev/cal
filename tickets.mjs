@@ -101,17 +101,22 @@ export function calculateOptimalTicket(selectedDates) {
 
     // Check for Weekly Pass applicability
     if (isWeeklyPassApplicable(selectedDates, weeklyPassPrice, roundTripPrice)) {
-        let costWithWeekly = weeklyPassPrice + calculateAdditionalRoundTripsCost(selectedDates, roundTripPrice, 'Weekly');
+        let costWithWeekly = weeklyPassPrice + calculateAdditionalRoundTripsCost(selectedDates, roundTripPrice, 'Weekly', 30, 10);
         if (costWithWeekly < minCost) {
             minCost = costWithWeekly;
-            optimalTicket = ['Weekly Pass', ...getAdditionalRoundTrips(selectedDates, 'Weekly').map(trip => trip.type)];
+            optimalTicket = ['Weekly Pass', ...getAdditionalRoundTrips(selectedDates, 'Weekly', 30, 10).map(trip => trip.type)];
         }
     }
 
     // Check for Flex Pass applicability
-    if (selectedDates.length <= 10 && flexPassPrice < minCost) {
-        minCost = flexPassPrice;
-        optimalTicket = ['Flex Pass'];
+    if (isFlexPassApplicable(selectedDates, flexPassPrice, roundTripPrice)) {
+        // TODO: handle case where there are more than 10 dates and Flex Pass is applicable
+        // i.e., Flex Pass + Round Trips
+        let costWithFlex = flexPassPrice + calculateAdditionalRoundTripsCost(selectedDates, roundTripPrice, 'Flex', 30, 10);
+        if (costWithFlex < minCost) {
+            minCost = costWithFlex;
+            optimalTicket = ['Flex Pass', ...getAdditionalRoundTrips(selectedDates, 'Flex', 30, 10).map(trip => trip.type)];
+        }
     }
 
     // Check for combination of Weekly Pass and Flex Pass
@@ -134,17 +139,46 @@ export function calculateOptimalTicket(selectedDates) {
 
     // Check for combination of Monthly Pass with Weekly Pass or Flex Pass
     if (Object.keys(groupDatesByMonth(selectedDates)).length > 1 && selectedDates.length > 19) {
-        // Calculate costs for Monthly + Weekly and Monthly + Flex combinations
-        let costWithMonthlyAndWeekly = monthlyPassPrice + weeklyPassPrice;
-        let costWithMonthlyAndFlex = monthlyPassPrice + flexPassPrice;
+        // monthlypassmonth is a string in the format YYYY-MM: extract the month and year
+        let [year, month] = monthlyPassMonth.split('-');
+        // Create a Date object for the month of the Monthly Pass
+        const monthlyPassMonthDate = new Date(year, month, 1);
+        // Filter out dates that fall under the month of the Monthly Pass
+        let datesOutsideMonthlyPass = filterDatesOutsideMonthlyPass(selectedDates, monthlyPassMonthDate);
 
-        // Determine the best combination
-        if (costWithMonthlyAndWeekly < minCost) {
-            minCost = costWithMonthlyAndWeekly;
-            optimalTicket = ['Monthly Pass', 'Weekly Pass'];
-        } else if (costWithMonthlyAndFlex < minCost) {
-            minCost = costWithMonthlyAndFlex;
-            optimalTicket = ['Monthly Pass', 'Flex Pass'];
+        // check if weekly pass is applicable for the dates outside the monthly pass using isWeeklyPassApplicable
+        if (isWeeklyPassApplicable(datesOutsideMonthlyPass, weeklyPassPrice, roundTripPrice)) {
+            let costWithWeekly2 = monthlyPassPrice + weeklyPassPrice + calculateAdditionalRoundTripsCost(datesOutsideMonthlyPass, roundTripPrice, 'Weekly', 30, 10);
+            if (costWithWeekly2 < minCost) {
+                minCost = costWithWeekly2;
+                optimalTicket = ['Monthly Pass', 'Weekly Pass', ...getAdditionalRoundTrips(datesOutsideMonthlyPass, 'Weekly', 30, 10).map(trip => trip.type)];
+            }
+        }
+
+        // Check for Flex Pass applicability
+        if (datesOutsideMonthlyPass.length <= 10 && flexPassPrice + monthlyPassPrice < minCost) {
+            // TODO: handle case where there are more than 10 dates outside the monthly pass and Flex Pass is applicable
+            // i.e., Monthly Pass + Flex Pass + Round Trips
+            minCost = flexPassPrice + monthlyPassPrice;
+            optimalTicket = ['Monthly Pass','Flex Pass'];
+        }
+
+        // Check for combination of Weekly Pass and Flex Pass
+        if (datesOutsideMonthlyPass.length > 10) {
+            let weeklyWindow2 = findWeeklyWindow(datesOutsideMonthlyPass);
+            let datesOutsideWeekly2 = datesOutsideMonthlyPass.filter(date => 
+                date < weeklyWindow2.start || date > weeklyWindow2.end
+            );
+
+            // Only consider Weekly + Flex combination if there are more than 10 dates in total
+            // but not more than 10 dates outside the weekly window
+            if (datesOutsideWeekly2.length <= 10 && datesOutsideWeekly2.length > 0) {
+                let costWithWeeklyAndFlexAndMonthly = weeklyPassPrice + flexPassPrice + monthlyPassPrice;
+                if (costWithWeeklyAndFlexAndMonthly < minCost) {
+                    minCost = costWithWeeklyAndFlexAndMonthly;
+                    optimalTicket = ['Monthly Pass', 'Weekly Pass', 'Flex Pass'];
+                }
+            }
         }
     }
 
@@ -156,7 +190,6 @@ export function calculateOptimalTicket(selectedDates) {
     return optimalTicket;
 }
 
-// JSDoc annotation block for the function
 /**
  * Groups an array of Date objects by month-year.
  * 
@@ -202,26 +235,57 @@ export function isWeeklyPassApplicable(selectedDates, weeklyPassPrice, roundTrip
     return totalRoundTripCost > weeklyPassPrice;
 }
 
+/**
+ * Checks if the total cost of round trips within the flex window is greater than the flex pass price.
+ *
+ * @param {Date[]} selectedDates - An array of Date objects representing selected dates.
+ * @param {number} flexPassPrice - The price of a flex pass.
+ * @param {number} roundTripPrice - The price of a single round trip ticket.
+ * @returns {boolean} Returns true if the total cost of round trips within the flex window is greater than the flex pass price, otherwise false.
+ */
+export function isFlexPassApplicable(selectedDates, flexPassPrice, roundTripPrice) {
+    let flexWindow = findFlexWindow(selectedDates);
+    let totalRoundTripCost = 0;
+
+    selectedDates.forEach(date => {
+        if (date >= flexWindow.start && date <= flexWindow.end) {
+            totalRoundTripCost += roundTripPrice;
+        }
+    });
+
+    return totalRoundTripCost > flexPassPrice;
+}
 
 /**
- * Calculates the additional cost for round trips outside the weekly window, given a specific pass type.
+ * Calculates the cost of additional round trips outside the weekly window.
  *
  * @param {Date[]} selectedDates - An array of Date objects representing selected dates.
  * @param {number} roundTripPrice - The price of a single round trip ticket.
- * @param {string} passType - The type of pass being considered, currently only 'Weekly' is handled.
- * @returns {number} The total additional cost for round trips outside the weekly window. 
- *                   Returns 0 for pass types other than 'Weekly'.
+ * @param {string} passType - The type of pass being considered, currently only 'Weekly' and 'Flex' are handled.
+ * @param {number} daysPerFlexPass - The number of days for which a Flex Pass is valid.
+ * @param {number} ticketsPerFlexPass - The number of round trips allowed for a Flex Pass.
+ * @returns {number} The cost of additional round trips outside the weekly window.
  */
-export function calculateAdditionalRoundTripsCost(selectedDates, roundTripPrice, passType) {
-    if (passType !== 'Weekly') {
-        return 0; // Currently only handling additional costs for Weekly Pass
+export function calculateAdditionalRoundTripsCost(selectedDates, roundTripPrice, passType, daysPerFlexPass, ticketsPerFlexPass) {
+    let additionalCost = 0;
+    let window;
+    let ticketsUsed = 0;
+
+    if (passType === 'Weekly') {
+        window = findWeeklyWindow(selectedDates);
+    } else if (passType === 'Flex') {
+        window = findFlexWindow(selectedDates, daysPerFlexPass);
+    } else {
+        return 0; // Currently only handling additional costs for Weekly and Flex Passes
     }
 
-    let additionalCost = 0;
-    let weeklyWindow = findWeeklyWindow(selectedDates);
-
     selectedDates.forEach(date => {
-        if (date < weeklyWindow.start || date > weeklyWindow.end) {
+        if (date >= window.start && date <= window.end) {
+            ticketsUsed++;
+            if (ticketsUsed > ticketsPerFlexPass) {
+                additionalCost += roundTripPrice;
+            }
+        } else {
             additionalCost += roundTripPrice;
         }
     });
@@ -253,27 +317,68 @@ export function findWeeklyWindow(selectedDates) {
 }
 
 /**
- * Calculates the additional round trips outside the weekly window, given a specific pass type.
- *
+ * Finds the additional round trips outside the weekly window based on the earliest date in the given selection.
+ * 
  * @param {Date[]} selectedDates - An array of Date objects representing selected dates.
- * @param {string} passType - The type of pass being considered, currently only 'Weekly' is handled.
- * @returns {Object[]} An array of objects with two properties, 'type' and 'date', representing the 
- *                      type of additional trip and the date of the trip. 
- *                      The 'type' property is a string and the 'date' property is a Date object.
- */
-export function getAdditionalRoundTrips(selectedDates, passType) {
-    if (passType !== 'Weekly') {
-        return []; // Currently only handling additional trips for Weekly Pass
+ * @param {string} passType - The type of pass being considered, currently only 'Weekly' and 'Flex' are handled.
+ * @param {number} daysPerFlexPass - The number of days for which a Flex Pass is valid.
+ * @param {number} ticketsPerFlexPass - The number of round trips allowed for a Flex Pass.
+ * @returns {Date[]} An array of Date objects representing the additional round trips outside the weekly window.
+ * 
+ **/
+export function getAdditionalRoundTrips(selectedDates, passType, daysPerFlexPass, ticketsPerFlexPass) {
+    let additionalTrips = [];
+    let window;
+    let ticketsUsed = 0;
+
+    if (passType === 'Weekly') {
+        window = findWeeklyWindow(selectedDates);
+    } else if (passType === 'Flex') {
+        window = findFlexWindow(selectedDates, daysPerFlexPass);
+    } else {
+        return []; // Currently only handling additional trips for Weekly and Flex Passes
     }
 
-    let additionalTrips = [];
-    let weeklyWindow = findWeeklyWindow(selectedDates);
-
     selectedDates.forEach(date => {
-        if (date < weeklyWindow.start || date > weeklyWindow.end) {
-            additionalTrips.push({ type: 'Round Trip', date: date });
+        if (date >= window.start && date <= window.end) {
+            ticketsUsed++;
+            if (ticketsUsed > ticketsPerFlexPass) {
+                additionalTrips.push({type: 'Round Trip', date: date});
+            }
+        } else {
+            additionalTrips.push({type: 'Round Trip', date: date});
         }
     });
 
     return additionalTrips;
+}
+/**
+ * Filters out dates that fall under the month for which the Monthly Pass is chosen.
+ * 
+ * @param {Date[]} selectedDates - An array of Date objects representing selected dates.
+ * @param {Date} monthlyPassMonth - The month for which the Monthly Pass is chosen.
+ * @returns {Date[]} A new array containing only Date objects that do not fall under the month that the Monthly Pass is chosen for.
+ **/
+export function filterDatesOutsideMonthlyPass(selectedDates, monthlyPassMonth) {
+    return selectedDates.filter(date => date.getMonth() !== monthlyPassMonth.getMonth() || date.getFullYear() !== monthlyPassMonth.getFullYear());
+}
+
+/**
+ * Finds the flex window (earliest date to earliest date + 30 days) based on the earliest date in the given selection.
+ *
+ * @param {Date[]} selectedDates - An array of Date objects representing selected dates.
+ * @param {number} daysPerFlexPass - The number of days for which a Flex Pass is valid.
+ * @returns {Object} An object with two properties, 'start' and 'end', representing the 
+ *                  start (earliest date) and end (earliest date + 30 days) of the flex window. 
+ *                  Both properties are Date objects.
+ */
+export function findFlexWindow(selectedDates, daysPerFlexPass) {
+    // Find the earliest date in the selected dates
+    let firstDate = new Date(Math.min(...selectedDates.map(date => date.getTime())));
+
+    // Calculate the end of the flex window
+    let endOfFlexWindow = new Date(firstDate);
+    endOfFlexWindow.setDate(endOfFlexWindow.getDate() + daysPerFlexPass - 1);
+
+    return { start: firstDate, end: endOfFlexWindow };
 }

@@ -50,7 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const daysContainer = document.querySelector('.days');
     let endDay;
     let currentDate = new Date();
-    if (currentDate.getDate() <= 9) {
+    if (currentDate.getDate() <= 14) {
         // If the current day is 14th or earlier, show the next 30 days
         endDay = new Date(currentDate);
         endDay.setDate(endDay.getDate() + 30);
