@@ -1,25 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert';
-import { 
-    hasContinuousSpan, 
-    calculateAdditionalRoundTripsCost, 
-    getAdditionalRoundTrips,
-    findWeeklyWindow,
-    isWeeklyPassApplicable,
-    calculateOptimalTicket,
-    filterDatesOutsideMonthlyPass
- } from './tickets.mjs';
-
-// Test cases for hasContinuousSpan
-test('hasContinuousSpan with continuous dates', () => {
-    const dates = [new Date(2023, 1, 1), new Date(2023, 1, 2), new Date(2023, 1, 3)];
-    assert.strictEqual(hasContinuousSpan(dates, 3), true);
-});
-
-test('hasContinuousSpan with discontinuous dates', () => {
-    const dates = [new Date(2023, 1, 1), new Date(2023, 1, 3), new Date(2023, 1, 5)];
-    assert.strictEqual(hasContinuousSpan(dates, 3), false);
-});
+import { decideLesserTickets, calculateOptimalTicket} from './tickets.mjs';
 
 // Assuming the ticket prices and types are as follows:
 // Round Trip: $10, Weekly Pass: $43.50, Flex Pass: $80, Monthly Pass: $145
@@ -165,132 +146,6 @@ test('calculateOptimalTicket with Monthly Pass plus additional Round Trips in fo
     assert.deepStrictEqual(calculateOptimalTicket(selectedDates), ['Monthly Pass', 'Round Trip', 'Round Trip']);
 });
 
-// Test cases for hasContinuousSpan
-// Test case for continuous span across month boundary
-test('hasContinuousSpan across month boundary', () => {
-    const dates = [new Date(2023, 0, 31), new Date(2023, 1, 1), new Date(2023, 1, 2)]; // Jan 31, Feb 1, Feb 2
-    assert.strictEqual(hasContinuousSpan(dates, 3), true);
-});
-
-// Test case for non-continuous span with Date objects
-test('hasContinuousSpan with non-continuous dates', () => {
-    const dates = [new Date(2023, 1, 1), new Date(2023, 1, 3), new Date(2023, 1, 5)]; // Feb 1, 3, 5
-    assert.strictEqual(hasContinuousSpan(dates, 3), false);
-});
-
-// Additional Cost When Weekly Pass is Used
-test('calculateAdditionalRoundTripsCost with dates outside the weekly window', () => {
-    const selectedDates = [
-        new Date(2023, 0, 7), // Saturday (Start of Weekly Window)
-        new Date(2023, 0, 14) // Next Saturday (Outside Weekly Window)
-    ];
-    const roundTripPrice = 10;
-    assert.strictEqual(calculateAdditionalRoundTripsCost(selectedDates, roundTripPrice, 'Weekly'), roundTripPrice);
-});
-
-// Identifying Specific Additional Round Trips:
-test('getAdditionalRoundTrips for dates requiring extra Round Trips', () => {
-    const selectedDates = [
-        new Date(2023, 0, 1), // Sunday (Inside Weekly Window)
-        new Date(2023, 0, 2), // Monday (Inside Weekly Window)
-        new Date(2023, 0, 8), // Next Sunday (Outside Weekly Window)
-        new Date(2023, 0, 9)  // Next Monday (Outside Weekly Window)
-    ];
-    const expectedAdditionalTrips = [
-        { date: new Date(2023, 0, 8), type: 'Round Trip' }, // Next Sunday
-        { date: new Date(2023, 0, 9), type: 'Round Trip' }  // Next Monday
-    ];
-    assert.deepStrictEqual(getAdditionalRoundTrips(selectedDates, 'Weekly'), expectedAdditionalTrips);
-});
-
-// Finding the Weekly Window for a Set of Dates
-test('findWeeklyWindow for a given set of dates', () => {
-    const selectedDates = [
-        new Date(2023, 0, 4), // Wednesday (Inside Weekly Window)
-        new Date(2023, 0, 5), // Thursday (Inside Weekly Window)
-        new Date(2023, 0, 6)  // Friday (Inside Weekly Window)
-    ];
-    const expectedWindow = { start: new Date(2022, 11 ,31), end: new Date(2023, 0, 6) };
-    assert.deepStrictEqual(findWeeklyWindow(selectedDates), expectedWindow);
-});
-
-test('findWeeklyWindow with date at the beginning of the week', () => {
-    const selectedDates = [new Date(2023, 10, 25)]; // Saturday
-    const expectedWindow = { start: new Date(2023, 10, 25), end: new Date(2023, 11, 1) }; // Saturday to next Friday
-    assert.deepStrictEqual(findWeeklyWindow(selectedDates), expectedWindow);
-});
-
-test('findWeeklyWindow with date at the end of the week', () => {
-    const selectedDates = [new Date(2023, 10, 24)]; // Friday
-    const expectedWindow = { start: new Date(2023, 10, 18), end: new Date(2023, 10, 24) }; // Previous Saturday to Friday
-    assert.deepStrictEqual(findWeeklyWindow(selectedDates), expectedWindow);
-});
-
-test('findWeeklyWindow with dates spanning two weeks', () => {
-    const selectedDates = [new Date(2023, 10, 24), new Date(2023, 11, 1)]; // Friday and next Saturday
-    const expectedWindow = { start: new Date(2023, 10, 18), end: new Date(2023, 10, 24) }; // Previous Saturday to Friday
-    assert.deepStrictEqual(findWeeklyWindow(selectedDates), expectedWindow);
-});
-
-// When Weekly Pass is more cost-effective than Round Trip
-test('isWeeklyPassApplicable when Weekly Pass is cost-effective', () => {
-    const selectedDates = [
-        new Date(2023, 0, 1), // Sunday
-        new Date(2023, 0, 2), // Monday
-        new Date(2023, 0, 3), // Tuesday
-        new Date(2023, 0, 4), // Wednesday
-        new Date(2023, 0, 5)  // Thursday
-    ];
-    const weeklyPassPrice = 43.50;
-    const roundTripPrice = 10;
-    assert.strictEqual(isWeeklyPassApplicable(selectedDates, weeklyPassPrice, roundTripPrice), true);
-});
-
-// When Round Trip is more cost-effective than Weekly Pass
-test('isWeeklyPassApplicable when Weekly Pass is not cost-effective', () => {
-    const selectedDates = [
-        new Date(2023, 0, 1), // Sunday
-        new Date(2023, 0, 8), // Next Sunday
-        new Date(2023, 0, 15) // Sunday of the next week
-    ];
-    const weeklyPassPrice = 43.50;
-    const roundTripPrice = 10;
-    assert.strictEqual(isWeeklyPassApplicable(selectedDates, weeklyPassPrice, roundTripPrice), false);
-});
-
-test('isWeeklyPassApplicable when Weekly Pass is clearly cost-effective', () => {
-    const selectedDates = [
-        new Date(2023, 0, 2), // Monday
-        new Date(2023, 0, 3), // Tuesday
-        new Date(2023, 0, 4), // Wednesday
-        new Date(2023, 0, 5), // Thursday
-        new Date(2023, 0, 6)  // Friday
-    ];
-    const weeklyPassPrice = 43.50;
-    const roundTripPrice = 10;
-    assert.strictEqual(isWeeklyPassApplicable(selectedDates, weeklyPassPrice, roundTripPrice), true);
-});
-
-test('isWeeklyPassApplicable when Weekly Pass is not cost-effective due to few trips', () => {
-    const selectedDates = [
-        new Date(2023, 0, 2), // Monday
-        new Date(2023, 0, 4), // Wednesday
-    ];
-    const weeklyPassPrice = 43.50;
-    const roundTripPrice = 10;
-    assert.strictEqual(isWeeklyPassApplicable(selectedDates, weeklyPassPrice, roundTripPrice), false);
-});
-
-test('isWeeklyPassApplicable when Weekly Pass is not cost-effective due to spread out dates', () => {
-    const selectedDates = [
-        new Date(2023, 0, 2), // Monday of week 1
-        new Date(2023, 0, 9), // Monday of week 2
-    ];
-    const weeklyPassPrice = 43.50;
-    const roundTripPrice = 10;
-    assert.strictEqual(isWeeklyPassApplicable(selectedDates, weeklyPassPrice, roundTripPrice), false);
-});
-
 test('calculateOptimalTicket with Weekly Pass and Flex Pass for three weeks of weekdays', () => {
     const selectedDates = [];
 
@@ -345,18 +200,112 @@ test('calculateOptimalTicket with Monthly Pass and Flex Pass', () => {
     assert.deepStrictEqual(calculateOptimalTicket(selectedDates), ['Monthly Pass', 'Flex Pass']);
 });
 
-test('should return an empty array when all dates fall under the month of the Monthly Pass', () => {
-    const selectedDates = [new Date(2022, 1, 1), new Date(2022, 1, 15), new Date(2022, 1, 28)];
-    const monthlyPassMonth = new Date(2022, 1, 1);
-    const result = filterDatesOutsideMonthlyPass(selectedDates, monthlyPassMonth);
-    assert.equal(result.length, 0);
+// Test cases for decideLesserTickets
+
+// Test with a single day (expect Round Trip)
+test('decideLesserTickets with one day', () => {
+    const selectedDates = [new Date(2023, 1, 1)];
+    assert.deepStrictEqual(decideLesserTickets(selectedDates), ['Round Trip']);
 });
 
-test('should return an array with dates that do not fall under the month of the Monthly Pass', () => {
-    const selectedDates = [new Date(2022, 1, 1), new Date(2022, 2, 15), new Date(2022, 3, 28)];
-    const monthlyPassMonth = new Date(2022, 1, 1);
-    const result = filterDatesOutsideMonthlyPass(selectedDates, monthlyPassMonth);
-    assert.equal(result.length, 2);
-    assert.equal(result[0].getTime(), new Date(2022, 2, 15).getTime());
-    assert.equal(result[1].getTime(), new Date(2022, 3, 28).getTime());
+// Test with two days (expect Round Trip x2)
+test('decideLesserTickets with two days', () => {
+    const selectedDates = [new Date(2023, 1, 1), new Date(2023, 1, 2)];
+    assert.deepStrictEqual(decideLesserTickets(selectedDates), ['Round Trip', 'Round Trip']);
+});
+
+// Test with three days (expect Round Trip x3)
+test('decideLesserTickets with three days', () => {
+    const selectedDates = [new Date(2023, 1, 1), new Date(2023, 1, 2), new Date(2023, 1, 3)];
+    assert.deepStrictEqual(decideLesserTickets(selectedDates), ['Round Trip', 'Round Trip', 'Round Trip']);
+});
+
+// Test with four days (expect Round Trip x4)
+test('decideLesserTickets with four days', () => {
+    const selectedDates = [new Date(2023, 1, 1), new Date(2023, 1, 2), new Date(2023, 1, 3), new Date(2023, 1, 4)];
+    assert.deepStrictEqual(decideLesserTickets(selectedDates), ['Round Trip', 'Round Trip', 'Round Trip', 'Round Trip']);
+});
+
+// Test with five days (expect Round Trip x5)
+test('decideLesserTickets with five days', () => {
+    const selectedDates = [new Date(2023, 1, 1), new Date(2023, 1, 2), new Date(2023, 1, 3), new Date(2023, 1, 4), new Date(2023, 1, 5)];
+    assert.deepStrictEqual(decideLesserTickets(selectedDates), ['Round Trip', 'Round Trip', 'Round Trip', 'Round Trip', 'Round Trip']);
+});
+
+// Test with six days (expect Round Trip x6)
+test('decideLesserTickets with six days', () => {
+    const selectedDates = [new Date(2023, 1, 1), new Date(2023, 1, 2), new Date(2023, 1, 3), new Date(2023, 1, 4), new Date(2023, 1, 5), new Date(2023, 1, 6)];
+    assert.deepStrictEqual(decideLesserTickets(selectedDates), ['Round Trip', 'Round Trip', 'Round Trip', 'Round Trip', 'Round Trip', 'Round Trip']);
+});
+
+// Test with seven days (expect Weekly Pass)
+test('decideLesserTickets with seven days', () => {
+    const selectedDates = [new Date(2023, 1, 1), new Date(2023, 1, 2), new Date(2023, 1, 3), new Date(2023, 1, 4), new Date(2023, 1, 5), new Date(2023, 1, 6), new Date(2023, 1, 7)];
+    assert.deepStrictEqual(decideLesserTickets(selectedDates), ['Weekly Pass']);
+});
+
+// Test with eight days (expect Weekly Pass plus Round Trip)
+test('decideLesserTickets with eight days', () => {
+    const selectedDates = [new Date(2023, 1, 1), new Date(2023, 1, 2), new Date(2023, 1, 3), new Date(2023, 1, 4), new Date(2023, 1, 5), new Date(2023, 1, 6), new Date(2023, 1, 7), new Date(2023, 1, 8)];
+    assert.deepStrictEqual(decideLesserTickets(selectedDates), ['Weekly Pass', 'Round Trip']);
+});
+
+// Test with nine days (expect Weekly Pass plus Round Trip x2)
+test('decideLesserTickets with nine days', () => {
+    const selectedDates = [new Date(2023, 1, 1), new Date(2023, 1, 2), new Date(2023, 1, 3), new Date(2023, 1, 4), new Date(2023, 1, 5), new Date(2023, 1, 6), new Date(2023, 1, 7), new Date(2023, 1, 8), new Date(2023, 1, 9)];
+    assert.deepStrictEqual(decideLesserTickets(selectedDates), ['Weekly Pass', 'Round Trip', 'Round Trip']);
+});
+
+// Test with ten days (expect Flex Pass)
+test('decideLesserTickets with ten days', () => {
+    const selectedDates = [];
+    for (let i = 1; i <= 10; i++) {
+        selectedDates.push(new Date(2023, 1, i));
+    }
+    assert.deepStrictEqual(decideLesserTickets(selectedDates), ['Flex Pass']);
+});
+
+// Test with eleven days (expect Flex Pass plus Round Trip)
+test('decideLesserTickets with eleven days', () => {
+    const selectedDates = [];
+    for (let i = 1; i <= 11; i++) {
+        selectedDates.push(new Date(2023, 1, i));
+    }
+    assert.deepStrictEqual(decideLesserTickets(selectedDates), ['Flex Pass', 'Round Trip']);
+});
+
+// Test with twelve days (expect Flex Pass plus Round Trip x2)
+test('decideLesserTickets with twelve days', () => {
+    const selectedDates = [];
+    for (let i = 1; i <= 12; i++) {
+        selectedDates.push(new Date(2023, 1, i));
+    }
+    assert.deepStrictEqual(decideLesserTickets(selectedDates), ['Flex Pass', 'Round Trip', 'Round Trip']);
+});
+
+// Test with thirteen days (expect Flex Pass plus Round Trip x3)
+test('decideLesserTickets with thirteen days', () => {
+    const selectedDates = [];
+    for (let i = 1; i <= 13; i++) {
+        selectedDates.push(new Date(2023, 1, i));
+    }
+    assert.deepStrictEqual(decideLesserTickets(selectedDates), ['Flex Pass', 'Round Trip', 'Round Trip', 'Round Trip']);
+});
+
+// Test with fourteen days (expect Flex Pass plus Round Trip x4)
+test('decideLesserTickets with fourteen days', () => {
+    const selectedDates = [];
+    for (let i = 1; i <= 14; i++) {
+        selectedDates.push(new Date(2023, 1, i));
+    }
+    assert.deepStrictEqual(decideLesserTickets(selectedDates), ['Flex Pass', 'Round Trip', 'Round Trip', 'Round Trip', 'Round Trip']);
+});
+
+// Test with fifteen days (expect Flex Pass plus Round Trip x5)
+test('decideLesserTickets with fifteen days', () => {
+    const selectedDates = [];
+    for (let i = 1; i <= 15; i++) {
+        selectedDates.push(new Date(2023, 1, i));
+    }
+    assert.deepStrictEqual(decideLesserTickets(selectedDates), ['Flex Pass', 'Round Trip', 'Round Trip', 'Round Trip', 'Round Trip', 'Round Trip']);
 });
