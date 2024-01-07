@@ -1,27 +1,21 @@
-export type TicketType = 'Round Trip' | 'Weekly Pass' | 'Flex Pass' | 'Monthly Pass';
-
 /**
  * Calculates the optimal ticket type for the given selection of dates.
  */
-export function calculateOptimalTicket(selectedDates: Date[]) {    
-    // Group selected dates by month
-    type DatesByMonth = { [key: string]: Date[] };
-    const datesByMonth: DatesByMonth = selectedDates.reduce((acc: DatesByMonth, date) => {
+export function calculateOptimalTicket(selectedDates) {
+    const datesByMonth = selectedDates.reduce((acc, date) => {
         const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
         acc[monthKey] = (acc[monthKey] || []).concat(date);
         return acc;
     }, {});
-
-    let optimalTicket: TicketType[] = [];
+    let optimalTicket = [];
     const firstMonthDates = datesByMonth[Object.keys(datesByMonth)[0]];
     let firstMonthValid, firstMonthNonEmpty = false;
-    if(firstMonthDates !== undefined) {
+    if (firstMonthDates !== undefined) {
         firstMonthValid = firstMonthDates.length > 17;
         firstMonthNonEmpty = firstMonthDates.length > 0;
     }
-
     // check if the dates span two months
-    if(Object.keys(datesByMonth).length > 1) {
+    if (Object.keys(datesByMonth).length > 1) {
         // there should only be two keys in the datesByMonth object
         // one for the current month and one for the next month
         // check if one of the two months has greater than 17 days selected
@@ -34,7 +28,6 @@ export function calculateOptimalTicket(selectedDates: Date[]) {
         }
         const monthlyPassPossible = firstMonthValid || secondMonthValid;
         const monthlyPassSpanTwoMonths = monthlyPassPossible && firstMonthNonEmpty && secondMonthNonEmpty;
-
         // if the dates span two months and a monthly pass is valid
         // then we need to check for other passes
         if (monthlyPassSpanTwoMonths) {
@@ -68,16 +61,15 @@ export function calculateOptimalTicket(selectedDates: Date[]) {
         }
     }
 }
-
 /**
  * A function that takes an array of dates as an argument and returns an array of strings representing the optimal ticket type for each date.
- * 
+ *
  * The optimal ticket type is determined by the following rules:
  *    a) a Round Trip ticket is a ticket that is valid for one day
  *    b) a Weekly Pass ticket is a ticket that is valid for seven consecutive days, starting on a Saturday and ending on a Friday
  *    c) a Flex Pass ticket is a ticket that is valid for 10 round trips within a 30 day period
  */
-export function decideLesserTickets(dates: Date[]): TicketType[] {
+export function decideLesserTickets(dates) {
     // return an array of 'Round Trip' strings
     return dates.map(() => 'Round Trip');
- }
+}
