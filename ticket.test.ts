@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert';
-import { decideLesserTickets, calculateOptimalTicket} from './tickets.mjs';
+import { decideLesserTickets, calculateOptimalTicket} from './tickets';
 
 // Assuming the ticket prices and types are as follows:
 // Round Trip: $10, Weekly Pass: $43.50, Flex Pass: $80, Monthly Pass: $145
