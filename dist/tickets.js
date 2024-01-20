@@ -33,7 +33,8 @@ export function calculateOptimalTicket(selectedDates) {
         if (monthlyPassSpanTwoMonths) {
             // isolate the dates for the lesser of the two months
             // by reassigning selectedDates to the value of the key corresponding to the month with fewer dates
-            const lesserMonthKey = firstMonthDates.length <= secondMonthDates.length ? Object.keys(datesByMonth)[0] : Object.keys(datesByMonth)[1];
+            const lesserMonthKey = firstMonthDates.length <= secondMonthDates.length
+                ? Object.keys(datesByMonth)[0] : Object.keys(datesByMonth)[1];
             const datesNotInMonthly = datesByMonth[lesserMonthKey];
             console.log(datesNotInMonthly);
             optimalTicket = ['Monthly Pass', ...decideLesserTickets(datesNotInMonthly)];
@@ -69,7 +70,23 @@ export function calculateOptimalTicket(selectedDates) {
  *    b) a Weekly Pass ticket is a ticket that is valid for seven consecutive days, starting on a Saturday and ending on a Friday
  *    c) a Flex Pass ticket is a ticket that is valid for 10 round trips within a 30 day period
  */
-export function decideLesserTickets(dates) {
+function decideLesserTickets(dates) {
+    decideFlexPass(dates);
+    decideWeeklyPass(dates);
     // return an array of 'Round Trip' strings
     return dates.map(() => 'Round Trip');
+}
+/**
+*
+* A function that decides whether a Flex Pass is an optimal choice given the span of dates
+*
+*/
+function decideFlexPass(dates) {
+    return dates;
+}
+/**
+* A function that decides whether a Weekly Pass is an optimal choice given the span of dates
+*/
+function decideWeeklyPass(dates) {
+    return dates;
 }
