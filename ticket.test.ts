@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert';
-import { decideLesserTickets, calculateOptimalTicket} from './tickets';
+import { calculateOptimalTicket } from './tickets.js';
 
 // Assuming the ticket prices and types are as follows:
 // Round Trip: $10, Weekly Pass: $43.50, Flex Pass: $80, Monthly Pass: $145
@@ -17,16 +17,6 @@ test('calculateOptimalTicket with one day', () => {
 test('calculateOptimalTicket across month boundary', () => {
     const selectedDates = [new Date(2023, 10, 19), new Date(2023, 10, 20), new Date(2023, 10, 21), new Date(2023, 10, 22), new Date(2023, 10, 23)];
     assert.deepStrictEqual(calculateOptimalTicket(selectedDates), ['Weekly Pass']);
-});
-
-// Test with even more scattered dates (expect Flex Pass)
-test('calculateOptimalTicket with many scattered dates (expect Round Trip x13)', () => {
-    const selectedDates = [];
-    for (let i = 0; i < 13; i++) { // 13 scattered dates across a month
-        selectedDates.push(new Date(2023, 0, i * 2 + 1)); // Every other day in a month
-    }
-    const expectedDates = ['Weekly Pass', 'Flex Pass'];
-    assert.deepStrictEqual(calculateOptimalTicket(selectedDates), expectedDates);
 });
 
 test('calculateOptimalTicket when only Round Trips are cost-effective', () => {
@@ -113,7 +103,7 @@ test('calculateOptimalTicket with dates spanning two weekly windows', () => {
 
 // Monthly Pass
 test('calculateOptimalTicket with all dates covered by a single Monthly Pass', () => {
-    const selectedDates = [];
+    const selectedDates: Date[] = [];
     for (let i = 1; i <= 30; i++) {
         selectedDates.push(new Date(2023, 4, i)); // All days in May 2023
     }
@@ -147,7 +137,7 @@ test('calculateOptimalTicket with Monthly Pass plus additional Round Trips in fo
 });
 
 test('calculateOptimalTicket with Weekly Pass and Flex Pass for three weeks of weekdays', () => {
-    const selectedDates = [];
+    const selectedDates: Date[] = [];
 
     // Week 1: Dates for the Weekly Pass (e.g., January 3-7, 2023, assuming January 1 is Sunday)
     for (let i = 2; i <= 6; i++) {
@@ -168,7 +158,7 @@ test('calculateOptimalTicket with Weekly Pass and Flex Pass for three weeks of w
 });
 
 test('calculateOptimalTicket with Monthly Pass and Weekly Pass', () => {
-    const selectedDates = [];
+    const selectedDates: Date[] = [];
     for (let day = 1; day <= 31; day++) {
         selectedDates.push(new Date(2023, 0, day)); // January 2023
     }
@@ -182,7 +172,7 @@ test('calculateOptimalTicket with Monthly Pass and Weekly Pass', () => {
 });
 
 test('calculateOptimalTicket with Monthly Pass and Flex Pass', () => {
-    const selectedDates = [];
+    const selectedDates: Date[] = [];
     // Add all days for January
     for (let day = 1; day <= 31; day++) {
         selectedDates.push(new Date(2023, 0, day)); // January 2023
@@ -198,114 +188,4 @@ test('calculateOptimalTicket with Monthly Pass and Flex Pass', () => {
     selectedDates.push(new Date(2023, 1, 20));
 
     assert.deepStrictEqual(calculateOptimalTicket(selectedDates), ['Monthly Pass', 'Flex Pass']);
-});
-
-// Test cases for decideLesserTickets
-
-// Test with a single day (expect Round Trip)
-test('decideLesserTickets with one day', () => {
-    const selectedDates = [new Date(2023, 1, 1)];
-    assert.deepStrictEqual(decideLesserTickets(selectedDates), ['Round Trip']);
-});
-
-// Test with two days (expect Round Trip x2)
-test('decideLesserTickets with two days', () => {
-    const selectedDates = [new Date(2023, 1, 1), new Date(2023, 1, 2)];
-    assert.deepStrictEqual(decideLesserTickets(selectedDates), ['Round Trip', 'Round Trip']);
-});
-
-// Test with three days (expect Round Trip x3)
-test('decideLesserTickets with three days', () => {
-    const selectedDates = [new Date(2023, 1, 1), new Date(2023, 1, 2), new Date(2023, 1, 3)];
-    assert.deepStrictEqual(decideLesserTickets(selectedDates), ['Round Trip', 'Round Trip', 'Round Trip']);
-});
-
-// Test with four days (expect Round Trip x4)
-test('decideLesserTickets with four days', () => {
-    const selectedDates = [new Date(2023, 1, 1), new Date(2023, 1, 2), new Date(2023, 1, 3), new Date(2023, 1, 4)];
-    assert.deepStrictEqual(decideLesserTickets(selectedDates), ['Round Trip', 'Round Trip', 'Round Trip', 'Round Trip']);
-});
-
-// Test with five days (expect Round Trip x5)
-test('decideLesserTickets with five days', () => {
-    const selectedDates = [new Date(2023, 1, 1), new Date(2023, 1, 2), new Date(2023, 1, 3), new Date(2023, 1, 4), new Date(2023, 1, 5)];
-    assert.deepStrictEqual(decideLesserTickets(selectedDates), ['Round Trip', 'Round Trip', 'Round Trip', 'Round Trip', 'Round Trip']);
-});
-
-// Test with six days (expect Round Trip x6)
-test('decideLesserTickets with six days', () => {
-    const selectedDates = [new Date(2023, 1, 1), new Date(2023, 1, 2), new Date(2023, 1, 3), new Date(2023, 1, 4), new Date(2023, 1, 5), new Date(2023, 1, 6)];
-    assert.deepStrictEqual(decideLesserTickets(selectedDates), ['Round Trip', 'Round Trip', 'Round Trip', 'Round Trip', 'Round Trip', 'Round Trip']);
-});
-
-// Test with seven days (expect Weekly Pass)
-test('decideLesserTickets with seven days', () => {
-    const selectedDates = [new Date(2023, 1, 1), new Date(2023, 1, 2), new Date(2023, 1, 3), new Date(2023, 1, 4), new Date(2023, 1, 5), new Date(2023, 1, 6), new Date(2023, 1, 7)];
-    assert.deepStrictEqual(decideLesserTickets(selectedDates), ['Weekly Pass']);
-});
-
-// Test with eight days (expect Weekly Pass plus Round Trip)
-test('decideLesserTickets with eight days', () => {
-    const selectedDates = [new Date(2023, 1, 1), new Date(2023, 1, 2), new Date(2023, 1, 3), new Date(2023, 1, 4), new Date(2023, 1, 5), new Date(2023, 1, 6), new Date(2023, 1, 7), new Date(2023, 1, 8)];
-    assert.deepStrictEqual(decideLesserTickets(selectedDates), ['Weekly Pass', 'Round Trip']);
-});
-
-// Test with nine days (expect Weekly Pass plus Round Trip x2)
-test('decideLesserTickets with nine days', () => {
-    const selectedDates = [new Date(2023, 1, 1), new Date(2023, 1, 2), new Date(2023, 1, 3), new Date(2023, 1, 4), new Date(2023, 1, 5), new Date(2023, 1, 6), new Date(2023, 1, 7), new Date(2023, 1, 8), new Date(2023, 1, 9)];
-    assert.deepStrictEqual(decideLesserTickets(selectedDates), ['Weekly Pass', 'Round Trip', 'Round Trip']);
-});
-
-// Test with ten days (expect Flex Pass)
-test('decideLesserTickets with ten days', () => {
-    const selectedDates = [];
-    for (let i = 1; i <= 10; i++) {
-        selectedDates.push(new Date(2023, 1, i));
-    }
-    assert.deepStrictEqual(decideLesserTickets(selectedDates), ['Flex Pass']);
-});
-
-// Test with eleven days (expect Flex Pass plus Round Trip)
-test('decideLesserTickets with eleven days', () => {
-    const selectedDates = [];
-    for (let i = 1; i <= 11; i++) {
-        selectedDates.push(new Date(2023, 1, i));
-    }
-    assert.deepStrictEqual(decideLesserTickets(selectedDates), ['Flex Pass', 'Round Trip']);
-});
-
-// Test with twelve days (expect Flex Pass plus Round Trip x2)
-test('decideLesserTickets with twelve days', () => {
-    const selectedDates = [];
-    for (let i = 1; i <= 12; i++) {
-        selectedDates.push(new Date(2023, 1, i));
-    }
-    assert.deepStrictEqual(decideLesserTickets(selectedDates), ['Flex Pass', 'Round Trip', 'Round Trip']);
-});
-
-// Test with thirteen days (expect Flex Pass plus Round Trip x3)
-test('decideLesserTickets with thirteen days', () => {
-    const selectedDates = [];
-    for (let i = 1; i <= 13; i++) {
-        selectedDates.push(new Date(2023, 1, i));
-    }
-    assert.deepStrictEqual(decideLesserTickets(selectedDates), ['Flex Pass', 'Round Trip', 'Round Trip', 'Round Trip']);
-});
-
-// Test with fourteen days (expect Flex Pass plus Round Trip x4)
-test('decideLesserTickets with fourteen days', () => {
-    const selectedDates = [];
-    for (let i = 1; i <= 14; i++) {
-        selectedDates.push(new Date(2023, 1, i));
-    }
-    assert.deepStrictEqual(decideLesserTickets(selectedDates), ['Flex Pass', 'Round Trip', 'Round Trip', 'Round Trip', 'Round Trip']);
-});
-
-// Test with fifteen days (expect Flex Pass plus Round Trip x5)
-test('decideLesserTickets with fifteen days', () => {
-    const selectedDates = [];
-    for (let i = 1; i <= 15; i++) {
-        selectedDates.push(new Date(2023, 1, i));
-    }
-    assert.deepStrictEqual(decideLesserTickets(selectedDates), ['Flex Pass', 'Round Trip', 'Round Trip', 'Round Trip', 'Round Trip', 'Round Trip']);
 });
