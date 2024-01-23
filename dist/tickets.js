@@ -84,7 +84,7 @@ function decideLesserTickets(dates) {
     // sort the dates
     const sortedDates = dates.sort(compd);
     let all = [];
-    all = all.concat(decideWeekly5(sortedDates), decideWeekly6(sortedDates), decideWeekly7(sortedDates), decideFlex8(sortedDates), decideFlex9(sortedDates), decideFlex10(sortedDates));
+    all = all.concat(decideWeekly5(sortedDates), decideWeekly6(sortedDates), decideWeekly7(sortedDates), decideFlex9(sortedDates), decideFlex10(sortedDates));
     // there's more than 5 days but there's no weekly or flex
     if (all.length === 0) {
         return dates.map(() => 'Round Trip');
@@ -113,10 +113,11 @@ function decideLesserTickets(dates) {
     let min = Infinity;
     let minK = [];
     let minV = [];
+    let flag = false;
     for (const [k, v] of m.entries()) {
         let cur = 0;
         // check if flex pass
-        if (k.length === 8 || k.length === 9 || k.length === 10) {
+        if (k.length === 9 || k.length === 10) {
             cur = fp;
         }
         // check if weekly pass 
@@ -138,7 +139,7 @@ function decideLesserTickets(dates) {
         // so if there is a matching key to our value
         if (vw) {
             // check if it's a flex pass
-            if (v.length === 8 || v.length === 9 || v.length === 10) {
+            if (v.length === 9 || v.length === 10) {
                 cur += fp;
             }
             // or a weekly pass 
@@ -153,11 +154,19 @@ function decideLesserTickets(dates) {
             min = cur;
             minK = k;
             minV = v;
+            // this should ensure that we know whether
+            // or not the last one is a valid window
+            if (vw) {
+                flag = true;
+            }
+            else {
+                flag = false;
+            }
         }
     }
     // map our optimal key to a ticket type
     let withK = [];
-    if (minK.length === 8 || minK.length === 9 || minK.length === 10) {
+    if (minK.length === 9 || minK.length === 10) {
         withK = ['Flex Pass'];
     }
     else if (minK.length === 5 || minK.length === 6 || minK.length === 7) {
@@ -168,11 +177,13 @@ function decideLesserTickets(dates) {
     }
     // now for the optimal value
     let withV = [];
-    if (minV.length === 8 || minV.length === 9 || minV.length === 10) {
-        withV = ['Flex Pass'];
-    }
-    else if (minV.length === 5 || minV.length === 6 || minV.length === 7) {
-        withV = ['Weekly Pass'];
+    if (flag) {
+        if (minV.length === 9 || minV.length === 10) {
+            withV = ['Flex Pass'];
+        }
+        else if (minV.length === 5 || minV.length === 6 || minV.length === 7) {
+            withV = ['Weekly Pass'];
+        }
     }
     else {
         withV = minV.map(() => 'Round Trip');
@@ -199,6 +210,35 @@ function difference(a, b) {
     return new Set(Array.from(a).filter(item => !b.has(item)));
 }
 /**
+ * Utility function that returns the distance between two Dates in days
+ *
+ * @param beg start date
+ * @param end end date
+ * @returns the range of days in between
+ */
+function getDist(beg, end) {
+    const eDate = end.getDate();
+    const eMonth = end.getMonth();
+    const bDate = beg.getDate();
+    const bMonth = beg.getMonth();
+    let range;
+    // check if the dates are in two separate months
+    if (bMonth < eMonth) {
+        const eom = new Date(end.getTime());
+        // now we have the last day of the first month
+        eom.setDate(eom.getDate() - eDate);
+        // get number of days from start of window to end of month
+        const toEom = eom.getDate() - bDate;
+        // real difference
+        range = toEom + eDate;
+    }
+    // else, we're ok to compare directly
+    else {
+        range = eDate - bDate;
+    }
+    return range;
+}
+/**
 * A function that decides whether a Flex Pass is an optimal choice given the span of dates and number of days in it
 */
 function decideFlexPass(dates, passes) {
@@ -207,7 +247,7 @@ function decideFlexPass(dates, passes) {
     if (numDays < passes) {
         return [];
     }
-    // use sliding window to search for all groupings of 8-10 days within 30 days
+    // use sliding window to search for all groupings of 9-10 days within 30 days
     let start = 0;
     let end = 0;
     const optimal = [];
@@ -215,8 +255,9 @@ function decideFlexPass(dates, passes) {
     while (end < numDays) {
         optimal.push(dates[end]);
         const cur = optimal.slice(start, end + 1);
+        const range = getDist(cur[0], cur[cur.length - 1]);
         // is last day not within 30 days of first day in window?
-        if ((cur[cur.length - 1].getDate() - cur[0].getDate()) > 30) {
+        if (range > 30) {
             // then move window forward
             start++;
         }
@@ -232,9 +273,6 @@ function decideFlexPass(dates, passes) {
         }
     }
     return opOfOps;
-}
-function decideFlex8(dates) {
-    return decideFlexPass(dates, 8);
 }
 function decideFlex9(dates) {
     return decideFlexPass(dates, 9);
@@ -267,11 +305,10 @@ function decideWeeklyPass(dates, passes) {
         }
         // get current window
         const cur = optimal.slice(start, end + 1);
+        const range = getDist(cur[0], cur[cur.length - 1]);
         // is the last day not within 7 days of the first day?
-        const eDate = cur[cur.length - 1].getDate();
-        const bDate = cur[0].getDate();
-        const range = eDate - bDate;
         const notWithin7Days = range > 7;
+        const within7Days = !notWithin7Days;
         // ok, but is it in a Saturday - Friday window?
         // d + 1 % 7 ensures Saturday is the start day
         // if the end day is less than the start day,
@@ -279,12 +316,13 @@ function decideWeeklyPass(dates, passes) {
         const eDay = (cur[cur.length - 1].getDay() + 1) % 7;
         const bDay = (cur[0].getDay() + 1) % 7;
         const notWithinSatFriWindow = (eDay < bDay);
+        const withinSatFriWindow = !notWithinSatFriWindow;
         if (notWithin7Days || notWithinSatFriWindow) {
             // then we know a window is impossible, keep movin
             start++;
         }
         // then we can check the window size
-        else if (cur.length === passes) {
+        else if (within7Days && withinSatFriWindow && cur.length === passes) {
             // add to list of valid windows
             opOfOps.push([...cur]);
             // and keep moving
