@@ -5,18 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>30-Day Calendar</title>
     <style>
-        body {
+        .container {
+            display: flex;
+            flex-direction: column;
+            width: 296px;
             font-family: Arial, sans-serif;
             color: #343232;
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
+            margin-top: 100px;
+            z-index: 1000;
         }
 
         .calendar {
             display: inline-block;
             border: 1px solid #D9D9D9;
+        }
+
+        input {
+            border-radius: 5px;
+            height: 30px;
         }
 
         .header span,
@@ -49,42 +59,11 @@
         .days span.selected {
             background-color: #DB4A4A;
         }
-
-        .prompt {
-            width: 449px;
-            height: 88px;
-            flex-shrink: 0;
-            border-radius: 20px;
-            background: #F9E6E6;
-        }
-
-        .prompt input {
-            width: 229px;
-            height: 30px;
-            flex-shrink: 0;
-            margin: auto; 
-            display: block;
-            border-radius: 10px;
-            background: #F3A8A8;
-            box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25) inset;
-        }
-
-        .prompt p {
-            width: 429px;
-            height: 17px;
-            flex-shrink: 0;
-            padding-top: 5px;
-            color: #540A0A;
-            text-align: center;
-            font-size: 16px;
-            font-style: normal;
-            font-weight: 500;
-            line-height: normal;
-        }
-
     </style>
 </head>
 <body>
+    <div class="container">
+    <input id="fare" placeholder="What's the price of your Round Trip Fare?">
     <div class="calendar">
         <div class="header">
             <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
@@ -210,9 +189,9 @@
             // once we have the minimum cost,
             // then we convert each pairing to respective string literals
             // each value array will be considered to be round trips
-            const rt = 10;
-            const wp = 43.5;
-            const fp = 80;
+            const rt = parseFloat(document.querySelector('#fare').value);
+            const wp = parseFloat((rt * 4.35).toFixed(2));
+            const fp = parseFloat((rt * 8).toFixed(2));
             let min = Infinity;
             let minK = [];
             let minV = [];
@@ -549,7 +528,7 @@
                 currentDate.setDate(currentDate.getDate() + 1);
             }
         });
-
     </script>
+    </div>
 </body>
 </html>

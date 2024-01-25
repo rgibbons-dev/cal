@@ -14,21 +14,6 @@ function displayOptimalTicket(ticketTypes: TicketType[]) {
 // Initialize an array to store the selected days
 let selectedDates: Date[] = [];
 
-/**
- * Function to update the display of selected days
- */
-function updateselectedDatesDisplay() {
-    const displayElement = document.getElementById('selected-days');
-    if (displayElement !== null) {
-        if (selectedDates.length > 0) {
-            const dayNumbers = selectedDates.map(date => date.getDate());
-            displayElement.textContent = 'Selected Days: ' + dayNumbers.join(', ');
-        } else {
-            displayElement.textContent = 'Selected Days: None';
-        }
-    }
-}
-
 // how can I make this type more specific?
 // I want 'ticket in Ticket' instead of string,
 // but it doesn't play nicely with the reduce function
@@ -98,7 +83,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 date.getFullYear() !== selectedDate.getFullYear());
             }
 
-            updateselectedDatesDisplay();
             let optimalTickets = calculateOptimalTicket(selectedDates);
             const consolidatedTickets = consolidateTickets(optimalTickets);
             displayOptimalTicket(consolidatedTickets);

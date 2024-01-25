@@ -121,9 +121,9 @@ function decideLesserTickets(dates: Date[]): TicketType[] {
     // once we have the minimum cost,
     // then we convert each pairing to respective string literals
     // each value array will be considered to be round trips
-    const rt = 10;
-    const wp = 43.5;
-    const fp = 80;
+    const rt = parseFloat((document.querySelector('#fare') as HTMLInputElement).value);
+    const wp = parseFloat((rt * 4.35).toFixed(2));
+    const fp = parseFloat((rt * 8).toFixed(2));
     let min = Infinity;
     let minK: Date[] = [];
     let minV: Date[] = [];

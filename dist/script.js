@@ -14,21 +14,6 @@ let selectedDates = [];
 /**
  * Function to update the display of selected days
  */
-function updateselectedDatesDisplay() {
-    const displayElement = document.getElementById('selected-days');
-    if (displayElement !== null) {
-        if (selectedDates.length > 0) {
-            const dayNumbers = selectedDates.map(date => date.getDate());
-            displayElement.textContent = 'Selected Days: ' + dayNumbers.join(', ');
-        }
-        else {
-            displayElement.textContent = 'Selected Days: None';
-        }
-    }
-}
-/**
- * Function to update the display of selected days
- */
 function consolidateTickets(optimalTickets) {
     const ticketCounts = optimalTickets.reduce((counts, ticket) => {
         counts[ticket] = (counts[ticket] || 0) + 1;
@@ -84,7 +69,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     date.getMonth() !== selectedDate.getMonth() ||
                     date.getFullYear() !== selectedDate.getFullYear());
             }
-            updateselectedDatesDisplay();
             let optimalTickets = calculateOptimalTicket(selectedDates);
             const consolidatedTickets = consolidateTickets(optimalTickets);
             displayOptimalTicket(consolidatedTickets);
