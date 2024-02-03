@@ -307,7 +307,7 @@ function decideWeeklyPass(dates, passes) {
         const cur = optimal.slice(start, end + 1);
         const range = getDist(cur[0], cur[cur.length - 1]);
         // is the last day not within 7 days of the first day?
-        const notWithin7Days = range > 7;
+        const notWithin7Days = range >= 7;
         const within7Days = !notWithin7Days;
         // ok, but is it in a Saturday - Friday window?
         // d + 1 % 7 ensures Saturday is the start day
