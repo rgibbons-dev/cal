@@ -1,540 +1,665 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>30-Day Calendar</title>
-    <style>
-        .placeholder {
-            min-height: 500px;
-            min-width: 296px;
-        }
-        .container {
-            display: flex;
-            flex-direction: column;
-            width: 296px;
-            font-family: Arial, sans-serif;
-            color: #343232;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            margin-top: 100px;
-            z-index: 1000;
-        }
-
-        .calendar {
-            display: inline-block;
-            border: 1px solid #D9D9D9;
-        }
-
-        input {
-            border-radius: 5px;
-            height: 30px;
-        }
-
-        .header span,
-        .days span {
-            display: inline-block;
-            width: 40px;
-            height: 40px;
-            line-height: 40px;
-            text-align: center;
-            border: 1px solid #F5F5F5;
-        }
-
-        .header span {
-            font-weight: bold;
-            background-color: #B6B4B4;
-        }
-
-        .days span {
-            vertical-align: top;
-        }
-
-        .days span.today {
-            background-color: #989494;
-        }
-
-        .days span.weekend {
-            background-color: #D7D6D6;
-        }
-
-        .days span.selected {
-            background-color: #DB4A4A;
-        }
-    </style>
-</head>
-<body>
-    <div class="placeholder">
-        <div class="container">
-        <input id="fare" placeholder="What's the price of your Round Trip Fare?">
-        <div class="calendar">
-            <div class="header">
-                <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
-            </div>
-            <div class="days"></div>
-        </div>
-        <div id="ticket-recommendation" style="padding-top: 20px; width: 500px">Recommended Ticket: None</div>
-        <script type="module">
-            /**
-            * Calculates the optimal ticket type for the given selection of dates.
-            *
-            * @param selectedDates a list of user-selected Dates
-            * @returns an array containing the optimal ticket selection
-            *
-            */
-            export function calculateOptimalTicket(selectedDates) {
-                const datesByMonth = selectedDates.reduce((acc, date) => {
-                    const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
-                    acc[monthKey] = (acc[monthKey] || []).concat(date);
-                    return acc;
-                }, {});
-                let optimalTicket = [];
-                const firstMonthDates = datesByMonth[Object.keys(datesByMonth)[0]];
-                let firstMonthValid, firstMonthNonEmpty = false;
-                if (firstMonthDates !== undefined) {
-                    firstMonthValid = firstMonthDates.length > 17;
-                    firstMonthNonEmpty = firstMonthDates.length > 0;
-                }
-                // check if the dates span two months
-                if (Object.keys(datesByMonth).length > 1) {
-                    // there should only be two keys in the datesByMonth object
-                    // one for the current month and one for the next month
-                    // check if one of the two months has greater than 17 days selected
-                    // if so, then the optimal ticket includes a monthly pass
-                    const secondMonthDates = datesByMonth[Object.keys(datesByMonth)[1]];
-                    let secondMonthValid, secondMonthNonEmpty = false;
-                    if (secondMonthDates !== undefined) {
-                        secondMonthValid = secondMonthDates.length > 17;
-                        secondMonthNonEmpty = secondMonthDates.length > 0;
-                    }
-                    const monthlyPassPossible = firstMonthValid || secondMonthValid;
-                    let tmp;
-                    if (monthlyPassPossible) {
-                        if (firstMonthNonEmpty) {
-                            if(secondMonthNonEmpty) {
-                                tmp = true;
-                            } else { tmp = false; }
-                        } else { tmp = false; }
-                    } else { tmp = false; }
-                    const monthlyPassSpanTwoMonths = tmp;
-                    // if the dates span two months and a monthly pass is valid
-                    // then we need to check for other passes
-                    if (monthlyPassSpanTwoMonths) {
-                        // isolate the dates for the lesser of the two months
-                        // by reassigning selectedDates to the value of the key corresponding to the month with fewer dates
-                        const lesserMonthKey = firstMonthDates.length <= secondMonthDates.length
-                            ? Object.keys(datesByMonth)[0] : Object.keys(datesByMonth)[1];
-                        const datesNotInMonthly = datesByMonth[lesserMonthKey];
-                        optimalTicket = ['Monthly Pass', ...decideLesserTickets(datesNotInMonthly)];
-                        return optimalTicket;
-                    }
-                    // the dates span two months but the monthly pass is not valid
-                    // so we need to check for other passes
-                    else {
-                        optimalTicket = decideLesserTickets(selectedDates);
-                        return optimalTicket;
-                    }
-                }
-                // dates dont span two months
-                else {
-                    // if the monthly pass is in play but the dates dont span two months
-                    // then we can just return the monthly pass
-                    if (firstMonthValid) {
-                        optimalTicket.push('Monthly Pass');
-                        return optimalTicket;
-                    }
-                    // else the monthly pass is not in play, check for other passes
-                    else {
-                        optimalTicket = decideLesserTickets(selectedDates);
-                        return optimalTicket;
-                    }
-                }
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>30-Day Calendar</title>
+        <style>
+            .placeholder {
+                min-height: 660px;
+                min-width: 296px;
+                margin-top: 0px;
+                position: relative;
             }
-            /**
-            * A function that takes an array of dates as an argument and returns an array of strings representing the optimal ticket type for each date.
-            *
-            * @param dates a list of user-selected Dates
-            * @returns an array containing the optimal ticket selection
-            *
-            * The optimal ticket type is determined by the following rules:
-            *    a) a Round Trip ticket is a ticket that is valid for one day
-            *    b) a Weekly Pass ticket is a ticket that is valid for seven consecutive days, starting on a Saturday and ending on a Friday
-            *    c) a Flex Pass ticket is a ticket that is valid for 10 round trips within a 30 day period
-            */
-            function decideLesserTickets(dates) {
-                // short circuit
-                if (dates.length < 5) {
-                    return dates.map(() => 'Round Trip');
-                }
-                // sort the dates
-                const sortedDates = dates.sort(compd);
-                let all = [];
-                all = all.concat(decideWeekly5(sortedDates), decideWeekly6(sortedDates), decideWeekly7(sortedDates), decideFlex9(sortedDates), decideFlex10(sortedDates));
-                // there's more than 5 days but there's no weekly or flex
-                if (all.length === 0) {
-                    return dates.map(() => 'Round Trip');
-                }
-                // for each array in all,
-                // convert to a set
-                // then take set difference from sortedDates
-                // and map the array in all to it
-                const m = new Map();
-                const universe = new Set(sortedDates);
-                for (const a of all) {
-                    const A = new Set(a);
-                    const complement = difference(universe, A);
-                    const c = Array.from(complement);
-                    // N.B. all keys should be unique in theory
-                    m.set(a, c);
-                }
-                // we are going to compute the cost of each key and value
-                // then we will compute the sum of each respective mapping
-                // once we have the minimum cost,
-                // then we convert each pairing to respective string literals
-                // each value array will be considered to be round trips
-                const rt = parseFloat(document.querySelector('#fare').value);
-                const wp = parseFloat((rt * 4.35).toFixed(2));
-                const fp = parseFloat((rt * 8).toFixed(2));
-                let min = Infinity;
-                let minK = [];
-                let minV = [];
-                let flag = false;
-                for (const [k, v] of m.entries()) {
-                    let cur = 0;
-                    // check if flex pass
-                    if (k.length === 9 || k.length === 10) {
-                        cur = fp;
-                    }
-                    // check if weekly pass 
-                    else if (k.length === 5 || k.length === 6 || k.length === 7) {
-                        cur = wp;
-                    }
-                    // check if there exists a value that is also a valid window
-                    const vw = Array.from(m.keys())
-                        // filter out non-empty lengths that don't equal v
-                        .filter(arr => {
-                            if (arr.length === v.length) {
-                                if (v.length > 0) {
-                                    return true;
-                                } else { return false; }
-                            } else { return false; }
-                        })
-                        // for all k arrays matching v, find at least one
-                        .some(
-                    // for all dates in this k
-                    arr => arr.every(
-                    // for some date vd in v
-                    d => v.some(
-                    // d from k matches a vd in v
-                    vd => vd.getDate() === d.getDate())));
-                    // so if there is a matching key to our value
-                    if (vw) {
-                        // check if it's a flex pass
-                        if (v.length === 9 || v.length === 10) {
-                            cur += fp;
+            .container {
+                display: flex;
+                flex-direction: column;
+                width: 296px;
+                font-family: Arial, sans-serif;
+                color: #343232;
+                position: absolute;
+                top: 0;
+                left: 50%;
+                transform: translateX(-50%);
+                z-index: 1000;
+                vertical-align: top;
+            }
+
+            .calendar {
+                display: inline-block;
+                height: auto;
+                border: 1px solid #d9d9d9;
+            }
+
+            .input-container {
+                padding-bottom: 20px;
+            }
+
+            input {
+                border-radius: 5px;
+                height: 30px;
+            }
+
+            .header span,
+            .days span {
+                display: inline-block;
+                width: 40px;
+                height: 40px;
+                line-height: 40px;
+                text-align: center;
+                border: 1px solid #f5f5f5;
+            }
+
+            .header span {
+                font-weight: bold;
+                background-color: #b6b4b4;
+            }
+
+            .days span {
+                vertical-align: top;
+            }
+
+            .days span.today {
+                background-color: #989494;
+            }
+
+            .days span.weekend {
+                background-color: #d7d6d6;
+            }
+
+            .days span.selected {
+                background-color: #db4a4a;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="placeholder">
+            <div class="container">
+                <p>
+                    Welcome to the NJT Ticket Picker! Enter the price of your
+                    Round Trip ticket, then tap on the days you need to make
+                    your commute.
+                </p>
+                <br />
+                <p>So, how much does your Round Trip fare cost?</p>
+                <div class="input-container">
+                    <input id="fare" placeholder="Enter fare here..." />
+                </div>
+                <div class="calendar">
+                    <div class="header">
+                        <span>Sun</span><span>Mon</span><span>Tue</span
+                        ><span>Wed</span><span>Thu</span><span>Fri</span
+                        ><span>Sat</span>
+                    </div>
+                    <div class="days"></div>
+                </div>
+                <div
+                    id="ticket-recommendation"
+                    style="padding-top: 20px; width: 296px"
+                >
+                    Recommended Ticket: None
+                </div>
+                <script type="module">
+                    /**
+                     * Calculates the optimal ticket type for the given selection of dates.
+                     *
+                     * @param selectedDates a list of user-selected Dates
+                     * @returns an array containing the optimal ticket selection
+                     *
+                     */
+                    export function calculateOptimalTicket(selectedDates) {
+                        const datesByMonth = selectedDates.reduce(
+                            (acc, date) => {
+                                const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
+                                acc[monthKey] = (acc[monthKey] || []).concat(
+                                    date,
+                                );
+                                return acc;
+                            },
+                            {},
+                        );
+                        let optimalTicket = [];
+                        const firstMonthDates =
+                            datesByMonth[Object.keys(datesByMonth)[0]];
+                        let firstMonthValid,
+                            firstMonthNonEmpty = false;
+                        if (firstMonthDates !== undefined) {
+                            firstMonthValid = firstMonthDates.length > 17;
+                            firstMonthNonEmpty = firstMonthDates.length > 0;
                         }
-                        // or a weekly pass 
-                        else if (v.length === 5 || v.length === 6 || v.length === 7) {
-                            cur += wp;
+                        // check if the dates span two months
+                        if (Object.keys(datesByMonth).length > 1) {
+                            // there should only be two keys in the datesByMonth object
+                            // one for the current month and one for the next month
+                            // check if one of the two months has greater than 17 days selected
+                            // if so, then the optimal ticket includes a monthly pass
+                            const secondMonthDates =
+                                datesByMonth[Object.keys(datesByMonth)[1]];
+                            let secondMonthValid,
+                                secondMonthNonEmpty = false;
+                            if (secondMonthDates !== undefined) {
+                                secondMonthValid = secondMonthDates.length > 17;
+                                secondMonthNonEmpty =
+                                    secondMonthDates.length > 0;
+                            }
+                            const monthlyPassPossible =
+                                firstMonthValid || secondMonthValid;
+                            let tmp;
+                            if (monthlyPassPossible) {
+                                if (firstMonthNonEmpty) {
+                                    if (secondMonthNonEmpty) {
+                                        tmp = true;
+                                    } else {
+                                        tmp = false;
+                                    }
+                                } else {
+                                    tmp = false;
+                                }
+                            } else {
+                                tmp = false;
+                            }
+                            const monthlyPassSpanTwoMonths = tmp;
+                            // if the dates span two months and a monthly pass is valid
+                            // then we need to check for other passes
+                            if (monthlyPassSpanTwoMonths) {
+                                // isolate the dates for the lesser of the two months
+                                // by reassigning selectedDates to the value of the key corresponding to the month with fewer dates
+                                const lesserMonthKey =
+                                    firstMonthDates.length <=
+                                    secondMonthDates.length
+                                        ? Object.keys(datesByMonth)[0]
+                                        : Object.keys(datesByMonth)[1];
+                                const datesNotInMonthly =
+                                    datesByMonth[lesserMonthKey];
+                                optimalTicket = [
+                                    "Monthly Pass",
+                                    ...decideLesserTickets(datesNotInMonthly),
+                                ];
+                                return optimalTicket;
+                            }
+                            // the dates span two months but the monthly pass is not valid
+                            // so we need to check for other passes
+                            else {
+                                optimalTicket =
+                                    decideLesserTickets(selectedDates);
+                                return optimalTicket;
+                            }
                         }
-                    }
-                    else {
-                        cur += v.length * rt;
-                    }
-                    if (cur < min) {
-                        min = cur;
-                        minK = k;
-                        minV = v;
-                        // this should ensure that we know whether
-                        // or not the last one is a valid window
-                        if (vw) {
-                            flag = true;
-                        }
+                        // dates dont span two months
                         else {
-                            flag = false;
+                            // if the monthly pass is in play but the dates dont span two months
+                            // then we can just return the monthly pass
+                            if (firstMonthValid) {
+                                optimalTicket.push("Monthly Pass");
+                                return optimalTicket;
+                            }
+                            // else the monthly pass is not in play, check for other passes
+                            else {
+                                optimalTicket =
+                                    decideLesserTickets(selectedDates);
+                                return optimalTicket;
+                            }
                         }
                     }
-                }
-                // map our optimal key to a ticket type
-                let withK = [];
-                if (minK.length === 9 || minK.length === 10) {
-                    withK = ['Flex Pass'];
-                }
-                else if (minK.length === 5 || minK.length === 6 || minK.length === 7) {
-                    withK = ['Weekly Pass'];
-                }
-                else {
-                    withK = minK.map(() => 'Round Trip');
-                }
-                // now for the optimal value
-                let withV = [];
-                if (flag) {
-                    if (minV.length === 9 || minV.length === 10) {
-                        withV = ['Flex Pass'];
+                    /**
+                     * A function that takes an array of dates as an argument and returns an array of strings representing the optimal ticket type for each date.
+                     *
+                     * @param dates a list of user-selected Dates
+                     * @returns an array containing the optimal ticket selection
+                     *
+                     * The optimal ticket type is determined by the following rules:
+                     *    a) a Round Trip ticket is a ticket that is valid for one day
+                     *    b) a Weekly Pass ticket is a ticket that is valid for seven consecutive days, starting on a Saturday and ending on a Friday
+                     *    c) a Flex Pass ticket is a ticket that is valid for 10 round trips within a 30 day period
+                     */
+                    function decideLesserTickets(dates) {
+                        // short circuit
+                        if (dates.length < 5) {
+                            return dates.map(() => "Round Trip");
+                        }
+                        // sort the dates
+                        const sortedDates = dates.sort(compd);
+                        let all = [];
+                        all = all.concat(
+                            decideWeekly5(sortedDates),
+                            decideWeekly6(sortedDates),
+                            decideWeekly7(sortedDates),
+                            decideFlex9(sortedDates),
+                            decideFlex10(sortedDates),
+                        );
+                        // there's more than 5 days but there's no weekly or flex
+                        if (all.length === 0) {
+                            return dates.map(() => "Round Trip");
+                        }
+                        // for each array in all,
+                        // convert to a set
+                        // then take set difference from sortedDates
+                        // and map the array in all to it
+                        const m = new Map();
+                        const universe = new Set(sortedDates);
+                        for (const a of all) {
+                            const A = new Set(a);
+                            const complement = difference(universe, A);
+                            const c = Array.from(complement);
+                            // N.B. all keys should be unique in theory
+                            m.set(a, c);
+                        }
+                        // we are going to compute the cost of each key and value
+                        // then we will compute the sum of each respective mapping
+                        // once we have the minimum cost,
+                        // then we convert each pairing to respective string literals
+                        // each value array will be considered to be round trips
+                        const rt = parseFloat(
+                            document.querySelector("#fare").value,
+                        );
+                        const wp = parseFloat((rt * 4.35).toFixed(2));
+                        const fp = parseFloat((rt * 8).toFixed(2));
+                        let min = Infinity;
+                        let minK = [];
+                        let minV = [];
+                        let flag = false;
+                        for (const [k, v] of m.entries()) {
+                            let cur = 0;
+                            // check if flex pass
+                            if (k.length === 9 || k.length === 10) {
+                                cur = fp;
+                            }
+                            // check if weekly pass
+                            else if (
+                                k.length === 5 ||
+                                k.length === 6 ||
+                                k.length === 7
+                            ) {
+                                cur = wp;
+                            }
+                            // check if there exists a value that is also a valid window
+                            const vw = Array.from(m.keys())
+                                // filter out non-empty lengths that don't equal v
+                                .filter((arr) => {
+                                    if (arr.length === v.length) {
+                                        if (v.length > 0) {
+                                            return true;
+                                        } else {
+                                            return false;
+                                        }
+                                    } else {
+                                        return false;
+                                    }
+                                })
+                                // for all k arrays matching v, find at least one
+                                .some(
+                                    // for all dates in this k
+                                    (arr) =>
+                                        arr.every(
+                                            // for some date vd in v
+                                            (d) =>
+                                                v.some(
+                                                    // d from k matches a vd in v
+                                                    (vd) =>
+                                                        vd.getDate() ===
+                                                        d.getDate(),
+                                                ),
+                                        ),
+                                );
+                            // so if there is a matching key to our value
+                            if (vw) {
+                                // check if it's a flex pass
+                                if (v.length === 9 || v.length === 10) {
+                                    cur += fp;
+                                }
+                                // or a weekly pass
+                                else if (
+                                    v.length === 5 ||
+                                    v.length === 6 ||
+                                    v.length === 7
+                                ) {
+                                    cur += wp;
+                                }
+                            } else {
+                                cur += v.length * rt;
+                            }
+                            if (cur < min) {
+                                min = cur;
+                                minK = k;
+                                minV = v;
+                                // this should ensure that we know whether
+                                // or not the last one is a valid window
+                                if (vw) {
+                                    flag = true;
+                                } else {
+                                    flag = false;
+                                }
+                            }
+                        }
+                        // map our optimal key to a ticket type
+                        let withK = [];
+                        if (minK.length === 9 || minK.length === 10) {
+                            withK = ["Flex Pass"];
+                        } else if (
+                            minK.length === 5 ||
+                            minK.length === 6 ||
+                            minK.length === 7
+                        ) {
+                            withK = ["Weekly Pass"];
+                        } else {
+                            withK = minK.map(() => "Round Trip");
+                        }
+                        // now for the optimal value
+                        let withV = [];
+                        if (flag) {
+                            if (minV.length === 9 || minV.length === 10) {
+                                withV = ["Flex Pass"];
+                            } else if (
+                                minV.length === 5 ||
+                                minV.length === 6 ||
+                                minV.length === 7
+                            ) {
+                                withV = ["Weekly Pass"];
+                            }
+                        } else {
+                            withV = minV.map(() => "Round Trip");
+                        }
+                        return withK.concat(withV);
                     }
-                    else if (minV.length === 5 || minV.length === 6 || minV.length === 7) {
-                        withV = ['Weekly Pass'];
+                    /**
+                     * Utility function for sorting dates
+                     * @param a a Date object
+                     * @param b a Date object
+                     * @returns the difference in time
+                     */
+                    function compd(a, b) {
+                        return a.getTime() - b.getTime();
                     }
-                }
-                else {
-                    withV = minV.map(() => 'Round Trip');
-                }
-                return withK.concat(withV);
-            }
-            /**
-            * Utility function for sorting dates
-            * @param a a Date object
-            * @param b a Date object
-            * @returns the difference in time
-            */
-            function compd(a, b) {
-                return a.getTime() - b.getTime();
-            }
-            /**
-            * Utility function due to lack of browser support for
-            * Set.prototype.difference()
-            *
-            * @param a set that contains elements we want
-            * @param b set that contains elements we don't want
-            */
-            function difference(a, b) {
-                return new Set(Array.from(a).filter(item => !b.has(item)));
-            }
-            /**
-            * Utility function that returns the distance between two Dates in days
-            *
-            * @param beg start date
-            * @param end end date
-            * @returns the range of days in between
-            */
-            function getDist(beg, end) {
-                const eDate = end.getDate();
-                const eMonth = end.getMonth();
-                const bDate = beg.getDate();
-                const bMonth = beg.getMonth();
-                let range;
-                // check if the dates are in two separate months
-                if (bMonth < eMonth) {
-                    const eom = new Date(end.getTime());
-                    // now we have the last day of the first month
-                    eom.setDate(eom.getDate() - eDate);
-                    // get number of days from start of window to end of month
-                    const toEom = eom.getDate() - bDate;
-                    // real difference
-                    range = toEom + eDate;
-                }
-                // else, we're ok to compare directly
-                else {
-                    range = eDate - bDate;
-                }
-                return range;
-            }
-            /**
-            * A function that decides whether a Flex Pass is an optimal choice given the span of dates and number of days in it
-            */
-            function decideFlexPass(dates, passes) {
-                const numDays = dates.length;
-                // sentinel
-                if (numDays < passes) {
-                    return [];
-                }
-                // use sliding window to search for all groupings of 9-10 days within 30 days
-                let start = 0;
-                let end = 0;
-                const optimal = [];
-                const opOfOps = [];
-                while (end < numDays) {
-                    optimal.push(dates[end]);
-                    const cur = optimal.slice(start, end + 1);
-                    const range = getDist(cur[0], cur[cur.length - 1]);
-                    // is last day not within 30 days of first day in window?
-                    if (range > 30) {
-                        // then move window forward
-                        start++;
+                    /**
+                     * Utility function due to lack of browser support for
+                     * Set.prototype.difference()
+                     *
+                     * @param a set that contains elements we want
+                     * @param b set that contains elements we don't want
+                     */
+                    function difference(a, b) {
+                        return new Set(
+                            Array.from(a).filter((item) => !b.has(item)),
+                        );
                     }
-                    // is the current window at our current length?
-                    else if (cur.length === passes) {
-                        // add to list of valid windows
-                        opOfOps.push([...cur]);
-                        // and keep moving
-                        start++;
+                    /**
+                     * Utility function that returns the distance between two Dates in days
+                     *
+                     * @param beg start date
+                     * @param end end date
+                     * @returns the range of days in between
+                     */
+                    function getDist(beg, end) {
+                        const eDate = end.getDate();
+                        const eMonth = end.getMonth();
+                        const bDate = beg.getDate();
+                        const bMonth = beg.getMonth();
+                        let range;
+                        // check if the dates are in two separate months
+                        if (bMonth < eMonth) {
+                            const eom = new Date(end.getTime());
+                            // now we have the last day of the first month
+                            eom.setDate(eom.getDate() - eDate);
+                            // get number of days from start of window to end of month
+                            const toEom = eom.getDate() - bDate;
+                            // real difference
+                            range = toEom + eDate;
+                        }
+                        // else, we're ok to compare directly
+                        else {
+                            range = eDate - bDate;
+                        }
+                        return range;
                     }
-                    else {
-                        end++;
-                    }
-                }
-                return opOfOps;
-            }
-            function decideFlex9(dates) {
-                return decideFlexPass(dates, 9);
-            }
-            function decideFlex10(dates) {
-                return decideFlexPass(dates, 10);
-            }
-            /**
-            * A function that decides whether a Weekly Pass is an optimal choice given the span of dates
-            *
-            * @param dates list of selected dates
-            * @param passes number of passes that would constitute a weekly pass
-            * @returns a list of possible lists with length of the amount of passes
-            */
-            function decideWeeklyPass(dates, passes) {
-                const numDays = dates.length;
-                // sentinel
-                if (numDays < passes) {
-                    return [];
-                }
-                // use sliding window to search for all groupings of 5-7 days within Sat-Fri
-                let start = 0;
-                let end = 0;
-                const optimal = [];
-                const opOfOps = [];
-                while (end < numDays) {
-                    // in the case we find a successful window, we might add a duplicate
-                    if (!optimal.includes(dates[end])) {
-                        optimal.push(dates[end]);
-                    }
-                    // get current window
-                    const cur = optimal.slice(start, end + 1);
-                    const range = getDist(cur[0], cur[cur.length - 1]);
-                    // is the last day not within 7 days of the first day?
-                    const notWithin7Days = range >= 7;
-                    const within7Days = !notWithin7Days;
-                    // ok, but is it in a Saturday - Friday window?
-                    // d + 1 % 7 ensures Saturday is the start day
-                    // if the end day is less than the start day,
-                    // then the end day is in the following window
-                    const eDay = (cur[cur.length - 1].getDay() + 1) % 7;
-                    const bDay = (cur[0].getDay() + 1) % 7;
-                    const notWithinSatFriWindow = (eDay < bDay);
-                    const withinSatFriWindow = !notWithinSatFriWindow;
-                    if (notWithin7Days || notWithinSatFriWindow) {
-                        // then we know a window is impossible, keep movin
-                        start++;
-                    }
-                    // then we can check the window size
-                    else if (within7Days) {
-                        if (withinSatFriWindow) {
-                            if (cur.length === passes) {
+                    /**
+                     * A function that decides whether a Flex Pass is an optimal choice given the span of dates and number of days in it
+                     */
+                    function decideFlexPass(dates, passes) {
+                        const numDays = dates.length;
+                        // sentinel
+                        if (numDays < passes) {
+                            return [];
+                        }
+                        // use sliding window to search for all groupings of 9-10 days within 30 days
+                        let start = 0;
+                        let end = 0;
+                        const optimal = [];
+                        const opOfOps = [];
+                        while (end < numDays) {
+                            optimal.push(dates[end]);
+                            const cur = optimal.slice(start, end + 1);
+                            const range = getDist(cur[0], cur[cur.length - 1]);
+                            // is last day not within 30 days of first day in window?
+                            if (range > 30) {
+                                // then move window forward
+                                start++;
+                            }
+                            // is the current window at our current length?
+                            else if (cur.length === passes) {
                                 // add to list of valid windows
                                 opOfOps.push([...cur]);
                                 // and keep moving
                                 start++;
-                            } else { end++; }
-                        } else { end++; }
+                            } else {
+                                end++;
+                            }
+                        }
+                        return opOfOps;
                     }
-                    // else move rhs of window forward
-                    else {
-                        end++;
+                    function decideFlex9(dates) {
+                        return decideFlexPass(dates, 9);
                     }
-                }
-                return opOfOps;
-            }
-            function decideWeekly5(dates) {
-                return decideWeeklyPass(dates, 5);
-            }
-            function decideWeekly6(dates) {
-                return decideWeeklyPass(dates, 6);
-            }
-            function decideWeekly7(dates) {
-                return decideWeeklyPass(dates, 7);
-            }
+                    function decideFlex10(dates) {
+                        return decideFlexPass(dates, 10);
+                    }
+                    /**
+                     * A function that decides whether a Weekly Pass is an optimal choice given the span of dates
+                     *
+                     * @param dates list of selected dates
+                     * @param passes number of passes that would constitute a weekly pass
+                     * @returns a list of possible lists with length of the amount of passes
+                     */
+                    function decideWeeklyPass(dates, passes) {
+                        const numDays = dates.length;
+                        // sentinel
+                        if (numDays < passes) {
+                            return [];
+                        }
+                        // use sliding window to search for all groupings of 5-7 days within Sat-Fri
+                        let start = 0;
+                        let end = 0;
+                        const optimal = [];
+                        const opOfOps = [];
+                        while (end < numDays) {
+                            // in the case we find a successful window, we might add a duplicate
+                            if (!optimal.includes(dates[end])) {
+                                optimal.push(dates[end]);
+                            }
+                            // get current window
+                            const cur = optimal.slice(start, end + 1);
+                            const range = getDist(cur[0], cur[cur.length - 1]);
+                            // is the last day not within 7 days of the first day?
+                            const notWithin7Days = range >= 7;
+                            const within7Days = !notWithin7Days;
+                            // ok, but is it in a Saturday - Friday window?
+                            // d + 1 % 7 ensures Saturday is the start day
+                            // if the end day is less than the start day,
+                            // then the end day is in the following window
+                            const eDay = (cur[cur.length - 1].getDay() + 1) % 7;
+                            const bDay = (cur[0].getDay() + 1) % 7;
+                            const notWithinSatFriWindow = eDay < bDay;
+                            const withinSatFriWindow = !notWithinSatFriWindow;
+                            if (notWithin7Days || notWithinSatFriWindow) {
+                                // then we know a window is impossible, keep movin
+                                start++;
+                            }
+                            // then we can check the window size
+                            else if (within7Days) {
+                                if (withinSatFriWindow) {
+                                    if (cur.length === passes) {
+                                        // add to list of valid windows
+                                        opOfOps.push([...cur]);
+                                        // and keep moving
+                                        start++;
+                                    } else {
+                                        end++;
+                                    }
+                                } else {
+                                    end++;
+                                }
+                            }
+                            // else move rhs of window forward
+                            else {
+                                end++;
+                            }
+                        }
+                        return opOfOps;
+                    }
+                    function decideWeekly5(dates) {
+                        return decideWeeklyPass(dates, 5);
+                    }
+                    function decideWeekly6(dates) {
+                        return decideWeeklyPass(dates, 6);
+                    }
+                    function decideWeekly7(dates) {
+                        return decideWeeklyPass(dates, 7);
+                    }
 
-            /**
-            * Function to display the selected optimal ticket in the UI
-            *
-            */
-            function displayOptimalTicket(ticketTypes) {
-                const recommendationElement = document.getElementById('ticket-recommendation');
-                if (recommendationElement !== null) {
-                    recommendationElement.textContent = 'Recommended Ticket: ' + ticketTypes.join(', ');
-                }
-            }
-            // Initialize an array to store the selected days
-            let selectedDates = [];
-            /**
-            * Function to update the display of selected days
-            */
-            function consolidateTickets(optimalTickets) {
-                const ticketCounts = optimalTickets.reduce((counts, ticket) => {
-                    counts[ticket] = (counts[ticket] || 0) + 1;
-                    return counts;
-                }, {});
-                return Object.entries(ticketCounts).map(([ticket, count]) => {
-                    if (count > 1) {
-                        return `${ticket} x${count}`;
-                    }
-                    else {
-                        return ticket;
-                    }
-                });
-            }
-            // Event listener for DOMContentLoaded to set up the calendar
-            document.addEventListener('DOMContentLoaded', () => {
-                const daysContainer = document.querySelector('.days');
-                let endDay;
-                let currentDate = new Date();
-                if (currentDate.getDate() <= 14) {
-                    // If the current day is 14th or earlier, show the next 30 days
-                    endDay = new Date(currentDate);
-                    endDay.setDate(endDay.getDate() + 30);
-                }
-                else {
-                    // If the current day is 15th or later, show until the end of the following month
-                    endDay = new Date(currentDate.getFullYear(), currentDate.getMonth() + 2, 0);
-                }
-                let init = true;
-                // Loop to create calendar days
-                while (currentDate < endDay) {
-                    let currentYear = currentDate.getFullYear();
-                    let currentMonth = currentDate.getMonth();
-                    if (init) {
-                        const startDay = currentDate.getDay();
-                        for (let i = 0; i < startDay; i++) {
-                            daysContainer === null || daysContainer === void 0 ? void 0 : daysContainer.appendChild(document.createElement('span'));
+                    /**
+                     * Function to display the selected optimal ticket in the UI
+                     *
+                     */
+                    function displayOptimalTicket(ticketTypes) {
+                        const recommendationElement = document.getElementById(
+                            "ticket-recommendation",
+                        );
+                        if (recommendationElement !== null) {
+                            recommendationElement.textContent =
+                                "Recommended Ticket: " + ticketTypes.join(", ");
                         }
-                        init = false;
                     }
-                    const span = document.createElement('span');
-                    span.textContent = currentDate.getDate().toString();
-                    // Event listener for selecting/deselecting days
-                    span.addEventListener('click', function () {
-                        this.classList.toggle('selected');
-                        const dayNumber = parseInt(this.textContent || '', 10);
-                        const selectedDate = new Date(currentYear, currentMonth, dayNumber); // Ensure currentYear and currentMonth are correctly set
-                        if (this.classList.contains('selected')) {
-                            selectedDates.push(selectedDate);
+                    // Initialize an array to store the selected days
+                    let selectedDates = [];
+                    /**
+                     * Function to update the display of selected days
+                     */
+                    function consolidateTickets(optimalTickets) {
+                        const ticketCounts = optimalTickets.reduce(
+                            (counts, ticket) => {
+                                counts[ticket] = (counts[ticket] || 0) + 1;
+                                return counts;
+                            },
+                            {},
+                        );
+                        return Object.entries(ticketCounts).map(
+                            ([ticket, count]) => {
+                                if (count > 1) {
+                                    return `${ticket} x${count}`;
+                                } else {
+                                    return ticket;
+                                }
+                            },
+                        );
+                    }
+                    // Event listener for DOMContentLoaded to set up the calendar
+                    document.addEventListener("DOMContentLoaded", () => {
+                        const daysContainer = document.querySelector(".days");
+                        let endDay;
+                        let currentDate = new Date();
+                        if (currentDate.getDate() <= 14) {
+                            // If the current day is 14th or earlier, show the next 30 days
+                            endDay = new Date(currentDate);
+                            endDay.setDate(endDay.getDate() + 30);
+                        } else {
+                            // If the current day is 15th or later, show until the end of the following month
+                            endDay = new Date(
+                                currentDate.getFullYear(),
+                                currentDate.getMonth() + 2,
+                                0,
+                            );
                         }
-                        else {
-                            selectedDates = selectedDates.filter(date => date.getDate() !== selectedDate.getDate() ||
-                                date.getMonth() !== selectedDate.getMonth() ||
-                                date.getFullYear() !== selectedDate.getFullYear());
+                        let init = true;
+                        // Loop to create calendar days
+                        while (currentDate < endDay) {
+                            let currentYear = currentDate.getFullYear();
+                            let currentMonth = currentDate.getMonth();
+                            if (init) {
+                                const startDay = currentDate.getDay();
+                                for (let i = 0; i < startDay; i++) {
+                                    daysContainer === null ||
+                                    daysContainer === void 0
+                                        ? void 0
+                                        : daysContainer.appendChild(
+                                              document.createElement("span"),
+                                          );
+                                }
+                                init = false;
+                            }
+                            const span = document.createElement("span");
+                            span.textContent = currentDate.getDate().toString();
+                            // Event listener for selecting/deselecting days
+                            span.addEventListener("click", function () {
+                                this.classList.toggle("selected");
+                                const dayNumber = parseInt(
+                                    this.textContent || "",
+                                    10,
+                                );
+                                const selectedDate = new Date(
+                                    currentYear,
+                                    currentMonth,
+                                    dayNumber,
+                                ); // Ensure currentYear and currentMonth are correctly set
+                                if (this.classList.contains("selected")) {
+                                    selectedDates.push(selectedDate);
+                                } else {
+                                    selectedDates = selectedDates.filter(
+                                        (date) =>
+                                            date.getDate() !==
+                                                selectedDate.getDate() ||
+                                            date.getMonth() !==
+                                                selectedDate.getMonth() ||
+                                            date.getFullYear() !==
+                                                selectedDate.getFullYear(),
+                                    );
+                                }
+                                let optimalTickets =
+                                    calculateOptimalTicket(selectedDates);
+                                const consolidatedTickets =
+                                    consolidateTickets(optimalTickets);
+                                displayOptimalTicket(consolidatedTickets);
+                            });
+                            // Highlight today's date
+                            if (
+                                currentDate.toDateString() ===
+                                new Date().toDateString()
+                            ) {
+                                span.classList.add("today");
+                            }
+                            // Highlight weekends
+                            if (
+                                currentDate.getDay() === 6 ||
+                                currentDate.getDay() === 0
+                            ) {
+                                span.classList.add("weekend");
+                            }
+                            daysContainer === null || daysContainer === void 0
+                                ? void 0
+                                : daysContainer.appendChild(span);
+                            // Add a line break after each week
+                            if (currentDate.getDay() === 6) {
+                                daysContainer === null ||
+                                daysContainer === void 0
+                                    ? void 0
+                                    : daysContainer.appendChild(
+                                          document.createElement("br"),
+                                      );
+                            }
+                            // Move to the next day
+                            currentDate.setDate(currentDate.getDate() + 1);
                         }
-                        let optimalTickets = calculateOptimalTicket(selectedDates);
-                        const consolidatedTickets = consolidateTickets(optimalTickets);
-                        displayOptimalTicket(consolidatedTickets);
                     });
-                    // Highlight today's date
-                    if (currentDate.toDateString() === new Date().toDateString()) {
-                        span.classList.add('today');
-                    }
-                    // Highlight weekends
-                    if (currentDate.getDay() === 6 || currentDate.getDay() === 0) {
-                        span.classList.add('weekend');
-                    }
-                    daysContainer === null || daysContainer === void 0 ? void 0 : daysContainer.appendChild(span);
-                    // Add a line break after each week
-                    if (currentDate.getDay() === 6) {
-                        daysContainer === null || daysContainer === void 0 ? void 0 : daysContainer.appendChild(document.createElement('br'));
-                    }
-                    // Move to the next day
-                    currentDate.setDate(currentDate.getDate() + 1);
-                }
-            });
-        </script>
+                </script>
+            </div>
         </div>
-    </div>
-</body>
+    </body>
 </html>
