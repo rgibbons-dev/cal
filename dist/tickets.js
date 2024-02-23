@@ -38,9 +38,13 @@ export function calculateOptimalTicket(selectedDates) {
             // isolate the dates for the lesser of the two months
             // by reassigning selectedDates to the value of the key corresponding to the month with fewer dates
             const lesserMonthKey = firstMonthDates.length <= secondMonthDates.length
-                ? Object.keys(datesByMonth)[0] : Object.keys(datesByMonth)[1];
+                ? Object.keys(datesByMonth)[0]
+                : Object.keys(datesByMonth)[1];
             const datesNotInMonthly = datesByMonth[lesserMonthKey];
-            optimalTicket = ['Monthly Pass', ...decideLesserTickets(datesNotInMonthly)];
+            optimalTicket = [
+                "Monthly Pass",
+                ...decideLesserTickets(datesNotInMonthly),
+            ];
             return optimalTicket;
         }
         // the dates span two months but the monthly pass is not valid
@@ -55,7 +59,7 @@ export function calculateOptimalTicket(selectedDates) {
         // if the monthly pass is in play but the dates dont span two months
         // then we can just return the monthly pass
         if (firstMonthValid) {
-            optimalTicket.push('Monthly Pass');
+            optimalTicket.push("Monthly Pass");
             return optimalTicket;
         }
         // else the monthly pass is not in play, check for other passes
@@ -79,7 +83,7 @@ export function calculateOptimalTicket(selectedDates) {
 function decideLesserTickets(dates) {
     // short circuit
     if (dates.length < 5) {
-        return dates.map(() => 'Round Trip');
+        return dates.map(() => "Round Trip");
     }
     // sort the dates
     const sortedDates = dates.sort(compd);
@@ -87,7 +91,7 @@ function decideLesserTickets(dates) {
     all = all.concat(decideWeekly5(sortedDates), decideWeekly6(sortedDates), decideWeekly7(sortedDates), decideFlex9(sortedDates), decideFlex10(sortedDates));
     // there's more than 5 days but there's no weekly or flex
     if (all.length === 0) {
-        return dates.map(() => 'Round Trip');
+        return dates.map(() => "Round Trip");
     }
     // for each array in all,
     // convert to a set
@@ -107,7 +111,7 @@ function decideLesserTickets(dates) {
     // once we have the minimum cost,
     // then we convert each pairing to respective string literals
     // each value array will be considered to be round trips
-    const rt = parseFloat(document.querySelector('#fare').value);
+    const rt = parseFloat(document.querySelector("#fare").value);
     const wp = parseFloat((rt * 4.35).toFixed(2));
     const fp = parseFloat((rt * 8).toFixed(2));
     let min = Infinity;
@@ -120,32 +124,60 @@ function decideLesserTickets(dates) {
         if (k.length === 9 || k.length === 10) {
             cur = fp;
         }
-        // check if weekly pass 
+        // check if weekly pass
         else if (k.length === 5 || k.length === 6 || k.length === 7) {
             cur = wp;
         }
         // check if there exists a value that is also a valid window
         const vw = Array.from(m.keys())
             // filter out non-empty lengths that don't equal v
-            .filter(arr => arr.length === v.length && v.length > 0)
+            .filter((arr) => arr.length === v.length && v.length > 0)
             // for all k arrays matching v, find at least one
             .some(
         // for all dates in this k
-        arr => arr.every(
+        (arr) => arr.every(
         // for some date vd in v
-        d => v.some(
+        (d) => v.some(
         // d from k matches a vd in v
-        vd => vd.getDate() === d.getDate())));
+        (vd) => vd.getDate() === d.getDate())));
         // so if there is a matching key to our value
         if (vw) {
             // check if it's a flex pass
             if (v.length === 9 || v.length === 10) {
                 cur += fp;
             }
-            // or a weekly pass 
+            // or a weekly pass
             else if (v.length === 5 || v.length === 6 || v.length === 7) {
                 cur += wp;
             }
+        }
+        else if (v.length > 4) {
+            // now we need to handle an edge case
+            // it may be that there are three discrete valid windows
+            // we need to apply decideLesserTickets to the
+            // remainders that do not constitute a window on their own.
+            // TODO: add types
+            const vDecided = decideLesserTickets(v)
+                .reduce((map, elem) => {
+                const ct = map.get(elem) || 0;
+                map.set(elem, ct + 1);
+                return map;
+            }, new Map())
+                .entries();
+            let vSum = 0;
+            console.log(k, v, vDecided);
+            for (const [vKey, vVal] of vDecided) {
+                if (vKey === "Flex Pass") {
+                    vSum += vVal * fp;
+                }
+                else if (vKey === "Weekly Pass") {
+                    vSum += vVal * wp;
+                }
+                else if (vKey === "Round Trip") {
+                    vSum += vVal * rt;
+                }
+            }
+            cur += vSum;
         }
         else {
             cur += v.length * rt;
@@ -167,26 +199,26 @@ function decideLesserTickets(dates) {
     // map our optimal key to a ticket type
     let withK = [];
     if (minK.length === 9 || minK.length === 10) {
-        withK = ['Flex Pass'];
+        withK = ["Flex Pass"];
     }
     else if (minK.length === 5 || minK.length === 6 || minK.length === 7) {
-        withK = ['Weekly Pass'];
+        withK = ["Weekly Pass"];
     }
     else {
-        withK = minK.map(() => 'Round Trip');
+        withK = minK.map(() => "Round Trip");
     }
     // now for the optimal value
     let withV = [];
     if (flag) {
         if (minV.length === 9 || minV.length === 10) {
-            withV = ['Flex Pass'];
+            withV = ["Flex Pass"];
         }
         else if (minV.length === 5 || minV.length === 6 || minV.length === 7) {
-            withV = ['Weekly Pass'];
+            withV = ["Weekly Pass"];
         }
     }
     else {
-        withV = minV.map(() => 'Round Trip');
+        withV = minV.map(() => "Round Trip");
     }
     return withK.concat(withV);
 }
@@ -207,7 +239,7 @@ function compd(a, b) {
  * @param b set that contains elements we don't want
  */
 function difference(a, b) {
-    return new Set(Array.from(a).filter(item => !b.has(item)));
+    return new Set(Array.from(a).filter((item) => !b.has(item)));
 }
 /**
  * Utility function that returns the distance between two Dates in days
@@ -239,8 +271,8 @@ function getDist(beg, end) {
     return range;
 }
 /**
-* A function that decides whether a Flex Pass is an optimal choice given the span of dates and number of days in it
-*/
+ * A function that decides whether a Flex Pass is an optimal choice given the span of dates and number of days in it
+ */
 function decideFlexPass(dates, passes) {
     const numDays = dates.length;
     // sentinel
@@ -315,7 +347,7 @@ function decideWeeklyPass(dates, passes) {
         // then the end day is in the following window
         const eDay = (cur[cur.length - 1].getDay() + 1) % 7;
         const bDay = (cur[0].getDay() + 1) % 7;
-        const notWithinSatFriWindow = (eDay < bDay);
+        const notWithinSatFriWindow = eDay < bDay;
         const withinSatFriWindow = !notWithinSatFriWindow;
         if (notWithin7Days || notWithinSatFriWindow) {
             // then we know a window is impossible, keep movin

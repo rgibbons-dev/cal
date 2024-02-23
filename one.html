@@ -30,8 +30,11 @@
                 border: 1px solid #d9d9d9;
             }
 
-            .input-container {
+            .topbar {
                 padding-bottom: 20px;
+                display: flex;
+                flex-direction: row;
+                gap: 10px;
             }
 
             input {
@@ -69,23 +72,22 @@
             .days span.selected {
                 background-color: #db4a4a;
             }
+
+            button {
+                border-radius: 5px;
+            }
         </style>
     </head>
     <body>
         <div class="placeholder">
             <div class="container">
                 <p>
-                    Welcome to the NJT Ticket Picker! Enter the price of your
-                    Round Trip ticket, then tap on the days you need to make
-                    your commute.
-                </p>
-                <br />
-                <p>
                     So, how much does your Round Trip fare cost? (Don't put a $,
                     just the number)
                 </p>
-                <div class="input-container">
+                <div class="topbar">
                     <input id="fare" placeholder="Enter fare here..." />
+                    <button id="reset">Reset</button>
                 </div>
                 <div class="calendar">
                     <div class="header">
@@ -528,6 +530,20 @@
                     }
 
                     /**
+                     * Function to alert user if no fare input
+                     */
+                    function alertNoInput() {
+                        if (document.querySelector("#fare").value === "") {
+                            alert(
+                                "Please enter the price of your fare into the input box!",
+                            );
+                            return true;
+                        } else {
+                            return false;
+                        }
+                    }
+
+                    /**
                      * Function to display the selected optimal ticket in the UI
                      *
                      */
@@ -565,6 +581,7 @@
                     }
                     // Event listener for DOMContentLoaded to set up the calendar
                     document.addEventListener("DOMContentLoaded", () => {
+                        var _a;
                         const daysContainer = document.querySelector(".days");
                         let endDay;
                         let currentDate = new Date();
@@ -601,34 +618,36 @@
                             span.textContent = currentDate.getDate().toString();
                             // Event listener for selecting/deselecting days
                             span.addEventListener("click", function () {
-                                this.classList.toggle("selected");
-                                const dayNumber = parseInt(
-                                    this.textContent || "",
-                                    10,
-                                );
-                                const selectedDate = new Date(
-                                    currentYear,
-                                    currentMonth,
-                                    dayNumber,
-                                ); // Ensure currentYear and currentMonth are correctly set
-                                if (this.classList.contains("selected")) {
-                                    selectedDates.push(selectedDate);
-                                } else {
-                                    selectedDates = selectedDates.filter(
-                                        (date) =>
-                                            date.getDate() !==
-                                                selectedDate.getDate() ||
-                                            date.getMonth() !==
-                                                selectedDate.getMonth() ||
-                                            date.getFullYear() !==
-                                                selectedDate.getFullYear(),
+                                if (!alertNoInput()) {
+                                    this.classList.toggle("selected");
+                                    const dayNumber = parseInt(
+                                        this.textContent || "",
+                                        10,
                                     );
+                                    const selectedDate = new Date(
+                                        currentYear,
+                                        currentMonth,
+                                        dayNumber,
+                                    ); // Ensure currentYear and currentMonth are correctly set
+                                    if (this.classList.contains("selected")) {
+                                        selectedDates.push(selectedDate);
+                                    } else {
+                                        selectedDates = selectedDates.filter(
+                                            (date) =>
+                                                date.getDate() !==
+                                                    selectedDate.getDate() ||
+                                                date.getMonth() !==
+                                                    selectedDate.getMonth() ||
+                                                date.getFullYear() !==
+                                                    selectedDate.getFullYear(),
+                                        );
+                                    }
+                                    let optimalTickets =
+                                        calculateOptimalTicket(selectedDates);
+                                    const consolidatedTickets =
+                                        consolidateTickets(optimalTickets);
+                                    displayOptimalTicket(consolidatedTickets);
                                 }
-                                let optimalTickets =
-                                    calculateOptimalTicket(selectedDates);
-                                const consolidatedTickets =
-                                    consolidateTickets(optimalTickets);
-                                displayOptimalTicket(consolidatedTickets);
                             });
                             // Highlight today's date
                             if (
@@ -659,6 +678,25 @@
                             // Move to the next day
                             currentDate.setDate(currentDate.getDate() + 1);
                         }
+                        (_a = document.querySelector("#reset")) === null ||
+                        _a === void 0
+                            ? void 0
+                            : _a.addEventListener("click", function () {
+                                  document
+                                      .querySelectorAll(".selected")
+                                      .forEach(function (date) {
+                                          date.classList.toggle("selected");
+                                      });
+                                  selectedDates = [];
+                                  const recommendationElement =
+                                      document.getElementById(
+                                          "ticket-recommendation",
+                                      );
+                                  if (recommendationElement !== null) {
+                                      recommendationElement.textContent =
+                                          "Recommended Ticket: None";
+                                  }
+                              });
                     });
                 </script>
             </div>
