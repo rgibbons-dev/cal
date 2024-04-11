@@ -167,7 +167,8 @@
                             // then we need to check for other passes
                             if (monthlyPassSpanTwoMonths) {
                                 // isolate the dates for the lesser of the two months
-                                // by reassigning selectedDates to the value of the key corresponding to the month with fewer dates
+                                // by reassigning selectedDates to the value of the key
+			        // corresponding to the month with fewer dates
                                 const lesserMonthKey =
                                     firstMonthDates.length <=
                                     secondMonthDates.length
@@ -177,7 +178,7 @@
                                     datesByMonth[lesserMonthKey];
                                 optimalTicket = [
                                     "Monthly Pass",
-                                    ...decideLesserTickets(datesNotInMonthly),
+                                    ...decideLesserTickets(datesNotInMonthly, 0),
                                 ];
                                 return optimalTicket;
                             }
@@ -185,7 +186,7 @@
                             // so we need to check for other passes
                             else {
                                 optimalTicket =
-                                    decideLesserTickets(selectedDates);
+                                    decideLesserTickets(selectedDates, 0);
                                 return optimalTicket;
                             }
                         }
@@ -200,23 +201,27 @@
                             // else the monthly pass is not in play, check for other passes
                             else {
                                 optimalTicket =
-                                    decideLesserTickets(selectedDates);
+                                    decideLesserTickets(selectedDates, 0);
                                 return optimalTicket;
                             }
                         }
                     }
                     /**
-                     * A function that takes an array of dates as an argument and returns an array of strings representing the optimal ticket type for each date.
+                     * A function that takes an array of dates as an argument and returns an array
+		     * of strings representing the optimal ticket type for each date.
                      *
                      * @param dates a list of user-selected Dates
+                     * @param cSum the cumulative minimum cost sum
                      * @returns an array containing the optimal ticket selection
                      *
                      * The optimal ticket type is determined by the following rules:
                      *    a) a Round Trip ticket is a ticket that is valid for one day
-                     *    b) a Weekly Pass ticket is a ticket that is valid for seven consecutive days, starting on a Saturday and ending on a Friday
-                     *    c) a Flex Pass ticket is a ticket that is valid for 10 round trips within a 30 day period
+                     *    b) a Weekly Pass ticket is a ticket that is valid for seven consecutive
+		     *       days, starting on a Saturday and ending on a Friday
+                     *    c) a Flex Pass ticket is a ticket that is valid for 10 round trips within
+		     *       a 30 day period
                      */
-                    function decideLesserTickets(dates) {
+                    function decideLesserTickets(dates, cSum) {
                         // short circuit
                         if (dates.length < 5) {
                             return dates.map(() => "Round Trip");
@@ -261,12 +266,13 @@
                         let min = Infinity;
                         let minK = [];
                         let minV = [];
+                        let fullV = [];
                         let flag = false;
                         for (const [k, v] of m.entries()) {
-                            let cur = 0;
+                            let cur = cSum;
                             // check if flex pass
                             if (k.length === 9 || k.length === 10) {
-                                cur = fp;
+                                cur += fp;
                             }
                             // check if weekly pass
                             else if (
@@ -274,7 +280,7 @@
                                 k.length === 6 ||
                                 k.length === 7
                             ) {
-                                cur = wp;
+                                cur += wp;
                             }
                             // check if there exists a value that is also a valid window
                             const vw = Array.from(m.keys())
@@ -319,13 +325,57 @@
                                 ) {
                                     cur += wp;
                                 }
-                            } else {
+                                fullV = v;
+                            }
+                            // value is not a valid window but may be a nested window
+                            else if (v.length > 4) {
+                                // now we need to handle an edge case
+                                // it may be that there are three discrete valid windows
+                                // we need to apply decideLesserTickets to the
+                                // remainders that do not constitute a window on their own.
+                                const iv = decideLesserTickets(v, cur)
+                                const vDecided = iv
+                                    .reduce((map, elem) => {
+                                    const ct = map.get(elem) || 0;
+                                    map.set(elem, ct + 1);
+                                    return map;
+                                }, new Map())
+                                    .entries();
+                                let vSum = 0;
+                                // i found the wonky bit
+                                // at the time of this call,
+                                // the outer key was Flex Pass (cSum), correct
+                                // the inner key is a Weekly Pass, correct
+                                // but the inner value is 6 Round Trips
+                                // for some reason it's choosing that instead of Weekly Pass +
+			        // 1 Round Trip
+                                // i think it might be the mapping
+                                // decideLesserTickets returns the optimal ticket
+                                // so the inner key will be there twice
+                                // i need to fold the inner V into v
+                                if (cSum !== 0) console.log(cSum,Array.from(vDecided),k,v);
+                                for (const [vKey, vVal] of vDecided) {
+                                    if (vKey === "Flex Pass") {
+                                        vSum += vVal * fp;
+                                    }
+                                    else if (vKey === "Weekly Pass") {
+                                        vSum += vVal * wp;
+                                    }
+                                    else if (vKey === "Round Trip") {
+                                        vSum += vVal * rt;
+                                    }
+                                }
+                                cur += vSum;
+                                fullV = iv;
+                            } 
+                            else {
                                 cur += v.length * rt;
+                                fullV = v;
                             }
                             if (cur < min) {
                                 min = cur;
                                 minK = k;
-                                minV = v;
+                                minV = fullV;
                                 // this should ensure that we know whether
                                 // or not the last one is a valid window
                                 if (vw) {
@@ -416,7 +466,8 @@
                         return range;
                     }
                     /**
-                     * A function that decides whether a Flex Pass is an optimal choice given the span of dates and number of days in it
+                     * A function that decides whether a Flex Pass is an optimal choice given the
+		     * span of dates and number of days in it
                      */
                     function decideFlexPass(dates, passes) {
                         const numDays = dates.length;
@@ -457,7 +508,8 @@
                         return decideFlexPass(dates, 10);
                     }
                     /**
-                     * A function that decides whether a Weekly Pass is an optimal choice given the span of dates
+                     * A function that decides whether a Weekly Pass is an optimal choice given the
+		     * span of dates
                      *
                      * @param dates list of selected dates
                      * @param passes number of passes that would constitute a weekly pass
@@ -590,7 +642,8 @@
                             endDay = new Date(currentDate);
                             endDay.setDate(endDay.getDate() + 30);
                         } else {
-                            // If the current day is 15th or later, show until the end of the following month
+                          // If the current day is 15th or later, show until the end of the
+			  // following month
                             endDay = new Date(
                                 currentDate.getFullYear(),
                                 currentDate.getMonth() + 2,
