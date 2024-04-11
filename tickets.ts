@@ -20,7 +20,7 @@ export function calculateOptimalTicket(selectedDates: Date[]) {
       acc[monthKey] = (acc[monthKey] || []).concat(date);
       return acc;
     },
-    {},
+    {}
   );
 
   let optimalTicket: TicketType[] = [];
@@ -112,7 +112,7 @@ function decideLesserTickets(dates: Date[]): TicketType[] {
     decideWeekly6(sortedDates),
     decideWeekly7(sortedDates),
     decideFlex9(sortedDates),
-    decideFlex10(sortedDates),
+    decideFlex10(sortedDates)
   );
   // there's more than 5 days but there's no weekly or flex
   if (all.length === 0) {
@@ -137,7 +137,7 @@ function decideLesserTickets(dates: Date[]): TicketType[] {
   // then we convert each pairing to respective string literals
   // each value array will be considered to be round trips
   const rt = parseFloat(
-    (document.querySelector("#fare") as HTMLInputElement).value,
+    (document.querySelector("#fare") as HTMLInputElement).value
   );
   const wp = parseFloat((rt * 4.35).toFixed(2));
   const fp = parseFloat((rt * 8).toFixed(2));
@@ -168,9 +168,9 @@ function decideLesserTickets(dates: Date[]): TicketType[] {
             (d) =>
               v.some(
                 // d from k matches a vd in v
-                (vd) => vd.getDate() === d.getDate(),
-              ),
-          ),
+                (vd) => vd.getDate() === d.getDate()
+              )
+          )
       );
     // so if there is a matching key to our value
     if (vw) {
