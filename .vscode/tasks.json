@@ -1,27 +1,25 @@
 {
-	"version": "2.0.0",
-	"tasks": [
-		{
-			"type": "typescript",
-			"tsconfig": "tsconfig.json",
-			"option": "watch",
-			"problemMatcher": [
-				"$tsc-watch"
-			],
-			"group": "build",
-			"label": "tsc: watch - tsconfig.json"
-		},
-		{
-			"type": "shell",
-			"group": "build",
-			"command": "live-server",
-			"label": "run live-server"
-		},
-		{
-			"type": "shell",
-			"group": "test",
-			"command": "node --test",
-			"label": "run test suite"
-		}
-	]
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "type": "typescript",
+      "tsconfig": "tsconfig.json",
+      "option": "watch",
+      "problemMatcher": ["$tsc-watch"],
+      "group": "build",
+      "label": "tsc: watch - tsconfig.json"
+    },
+    {
+      "type": "shell",
+      "group": "build",
+      "command": "live-server",
+      "label": "run live-server"
+    },
+    {
+      "type": "shell",
+      "group": "test",
+      "command": "node --test",
+      "label": "run test suite"
+    }
+  ]
 }

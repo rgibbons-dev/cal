@@ -18,7 +18,7 @@ function alertNoInput() {
  */
 function displayOptimalTicket(ticketTypes: TicketType[]) {
   const recommendationElement = document.getElementById(
-    "ticket-recommendation"
+    "ticket-recommendation",
   );
   if (recommendationElement !== null) {
     recommendationElement.textContent =
@@ -43,7 +43,7 @@ function consolidateTickets(optimalTickets: TicketType[]) {
       counts[ticket] = (counts[ticket] || 0) + 1;
       return counts;
     },
-    {}
+    {},
   );
 
   return Object.entries(ticketCounts).map(([ticket, count]) => {
@@ -100,7 +100,7 @@ document.addEventListener("DOMContentLoaded", () => {
             (date) =>
               date.getDate() !== selectedDate.getDate() ||
               date.getMonth() !== selectedDate.getMonth() ||
-              date.getFullYear() !== selectedDate.getFullYear()
+              date.getFullYear() !== selectedDate.getFullYear(),
           );
         }
 
@@ -136,7 +136,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     selectedDates = [];
     const recommendationElement = document.getElementById(
-      "ticket-recommendation"
+      "ticket-recommendation",
     );
     if (recommendationElement !== null) {
       recommendationElement.textContent = "Recommended Ticket: None";

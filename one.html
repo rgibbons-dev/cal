@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -214,8 +214,6 @@
               decideWeekly5(sortedDates),
               decideWeekly6(sortedDates),
               decideWeekly7(sortedDates),
-              decideFlex9(sortedDates),
-              decideFlex10(sortedDates)
             );
             // there's more than 5 days but there's no weekly or flex
             if (all.length === 0) {
@@ -240,10 +238,9 @@
             // then we convert each pairing to respective string literals
             // each value array will be considered to be round trips
             const rt = parseFloat(
-              document.querySelector("#fare").value.replace(/\$/g, "")
+              document.querySelector("#fare").value.replace(/\$/g, ""),
             );
             const wp = parseFloat((rt * 4.35).toFixed(2));
-            const fp = parseFloat((rt * 8).toFixed(2));
             let min = Infinity;
             let minK = [];
             let minV = [];
@@ -251,12 +248,8 @@
             let flag = false;
             for (const [k, v] of m.entries()) {
               let cur = cSum;
-              // check if flex pass
-              if (k.length === 9 || k.length === 10) {
-                cur += fp;
-              }
               // check if weekly pass
-              else if (k.length === 5 || k.length === 6 || k.length === 7) {
+              if (k.length === 5 || k.length === 6 || k.length === 7) {
                 cur += wp;
               }
               // check if there exists a value that is also a valid window
@@ -282,18 +275,14 @@
                       (d) =>
                         v.some(
                           // d from k matches a vd in v
-                          (vd) => vd.getDate() === d.getDate()
-                        )
-                    )
+                          (vd) => vd.getDate() === d.getDate(),
+                        ),
+                    ),
                 );
               // so if there is a matching key to our value
               if (vw) {
-                // check if it's a flex pass
-                if (v.length === 9 || v.length === 10) {
-                  cur += fp;
-                }
-                // or a weekly pass
-                else if (v.length === 5 || v.length === 6 || v.length === 7) {
+                // check if it's a weekly pass
+                if (v.length === 5 || v.length === 6 || v.length === 7) {
                   cur += wp;
                 }
                 fullV = v;
@@ -313,22 +302,9 @@
                   }, new Map())
                   .entries();
                 let vSum = 0;
-                // i found the wonky bit
-                // at the time of this call,
-                // the outer key was Flex Pass (cSum), correct
-                // the inner key is a Weekly Pass, correct
-                // but the inner value is 6 Round Trips
-                // for some reason it's choosing that instead of Weekly Pass +
-                // 1 Round Trip
-                // i think it might be the mapping
-                // decideLesserTickets returns the optimal ticket
-                // so the inner key will be there twice
-                // i need to fold the inner V into v
                 if (cSum !== 0) console.log(cSum, Array.from(vDecided), k, v);
                 for (const [vKey, vVal] of vDecided) {
-                  if (vKey === "Flex Pass") {
-                    vSum += vVal * fp;
-                  } else if (vKey === "Weekly Pass") {
+                  if (vKey === "Weekly Pass") {
                     vSum += vVal * wp;
                   } else if (vKey === "Round Trip") {
                     vSum += vVal * rt;
@@ -355,9 +331,7 @@
             }
             // map our optimal key to a ticket type
             let withK = [];
-            if (minK.length === 9 || minK.length === 10) {
-              withK = ["Flex Pass"];
-            } else if (
+            if (
               minK.length === 5 ||
               minK.length === 6 ||
               minK.length === 7
@@ -369,9 +343,7 @@
             // now for the optimal value
             let withV = [];
             if (flag) {
-              if (minV.length === 9 || minV.length === 10) {
-                withV = ["Flex Pass"];
-              } else if (
+              if (
                 minV.length === 5 ||
                 minV.length === 6 ||
                 minV.length === 7
@@ -430,48 +402,6 @@
               range = eDate - bDate;
             }
             return range;
-          }
-          /**
-           * A function that decides whether a Flex Pass is an optimal choice given the
-           * span of dates and number of days in it
-           */
-          function decideFlexPass(dates, passes) {
-            const numDays = dates.length;
-            // sentinel
-            if (numDays < passes) {
-              return [];
-            }
-            // use sliding window to search for all groupings of 9-10 days within 30 days
-            let start = 0;
-            let end = 0;
-            const optimal = [];
-            const opOfOps = [];
-            while (end < numDays) {
-              optimal.push(dates[end]);
-              const cur = optimal.slice(start, end + 1);
-              const range = getDist(cur[0], cur[cur.length - 1]);
-              // is last day not within 30 days of first day in window?
-              if (range > 30) {
-                // then move window forward
-                start++;
-              }
-              // is the current window at our current length?
-              else if (cur.length === passes) {
-                // add to list of valid windows
-                opOfOps.push([...cur]);
-                // and keep moving
-                start++;
-              } else {
-                end++;
-              }
-            }
-            return opOfOps;
-          }
-          function decideFlex9(dates) {
-            return decideFlexPass(dates, 9);
-          }
-          function decideFlex10(dates) {
-            return decideFlexPass(dates, 10);
           }
           /**
            * A function that decides whether a Weekly Pass is an optimal choice given the
@@ -565,7 +495,7 @@
            */
           function displayOptimalTicket(ticketTypes) {
             const recommendationElement = document.getElementById(
-              "ticket-recommendation"
+              "ticket-recommendation",
             );
             if (recommendationElement !== null) {
               recommendationElement.textContent =
@@ -601,7 +531,7 @@
               endDay = new Date(
                 currentDate.getFullYear(),
                 currentDate.getMonth() + 1,
-                1
+                1,
               );
             } else {
               // If the current day is 15th or later, show until the end of the
@@ -609,7 +539,7 @@
               endDay = new Date(
                 currentDate.getFullYear(),
                 currentDate.getMonth() + 2,
-                1
+                1,
               );
             }
             let init = true;
@@ -636,7 +566,7 @@
                   const selectedDate = new Date(
                     currentYear,
                     currentMonth,
-                    dayNumber
+                    dayNumber,
                   ); // Ensure currentYear and currentMonth are correctly set
                   if (this.classList.contains("selected")) {
                     selectedDates.push(selectedDate);
@@ -645,7 +575,7 @@
                       (date) =>
                         date.getDate() !== selectedDate.getDate() ||
                         date.getMonth() !== selectedDate.getMonth() ||
-                        date.getFullYear() !== selectedDate.getFullYear()
+                        date.getFullYear() !== selectedDate.getFullYear(),
                     );
                   }
                   let optimalTickets = calculateOptimalTicket(selectedDates);
@@ -684,7 +614,7 @@
                     });
                   selectedDates = [];
                   const recommendationElement = document.getElementById(
-                    "ticket-recommendation"
+                    "ticket-recommendation",
                   );
                   if (recommendationElement !== null) {
                     recommendationElement.textContent =

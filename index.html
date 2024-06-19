@@ -1,124 +1,157 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-
-<head>
+  <head>
     <title>about cal</title>
     <style>
-        body {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-        }
+      body {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+      }
 
+      p {
+        margin: 10px;
+        padding: 0 20px;
+        line-height: 1.5;
+        text-align: justify;
+      }
+
+      @media (max-width: 600px) {
         p {
-            margin: 10px;
-            padding: 0 20px;
-            line-height: 1.5;
-            text-align: justify;
+          font-size: 14px;
         }
-
-        @media (max-width: 600px) {
-            p {
-                font-size: 14px;
-            }
-        }
+      }
     </style>
-</head>
+  </head>
 
-<body>
+  <body>
     <h1>On `cal`</h1>
     <p>
-        So, there's a lot to say here. This began as an experiment with AI-assisted code, and ended with me rewriting it
-        entirely by hand. I created this for a friend -- they wanted to have something on their website, a Wordpress
-        website, that clients could use to help determine what the best NJ Transit fare for them would be. That benefits
-        me too, as I commute via NJ Transit and also wondered what the best bang for my buck would be. Before I begin,
-        <a href="multi.html">here</a> is a link to the finished product. First, I'll start by describing the problem
-        space.
+      So, there's a lot to say here. This began as an experiment with
+      AI-assisted code, and ended with me rewriting it entirely by hand. I
+      created this for a friend -- they wanted to have something on their
+      website, a Wordpress website, that clients could use to help determine
+      what the best NJ Transit fare for them would be. That benefits me too, as
+      I commute via NJ Transit and also wondered what the best bang for my buck
+      would be. Before I begin,
+      <a href="multi.html">here</a> is a link to the finished product. First,
+      I'll start by describing the problem space.
     </p>
     <p>
-        Given a round trip commute as a unit, there are four ticket types: Round Trip, Weekly Pass, Flex Pass (which
-        will be retired in July of 2024), and Monthly Pass. The Round Trip is self-explanatory. It's a ticket that
-        grants a rider passage to and from a destination. They do not expire. A Weekly Pass is a ticket that given a
-        fixed window from Saturday to Friday, a rider has unlimited passes from a set origin and to a set destination.
-        The pass is valid only during the specified week. The pricing generally works out that it is worth a little less
-        than the fare of four and a half Round Trip tickets. The Flex Pass is another value option; for the price of
-        eight Round Trips, one can get ten Round Trip Passes, with the exception that they must be used within 30 days
-        of purchase. The Monthly Pass is a ticket that grants a rider unlimited Round Trip tickets to and from a fixed
-        origin and destination. It is worth a little more than fourteen Round Trip tickets. Now that we understand the
-        lay of the land, I will detail my experience developing this program.
+      Given a round trip commute as a unit, there are four ticket types: Round
+      Trip, Weekly Pass, Flex Pass (which will be retired in July of 2024), and
+      Monthly Pass. The Round Trip is self-explanatory. It's a ticket that
+      grants a rider passage to and from a destination. They do not expire. A
+      Weekly Pass is a ticket that given a fixed window from Saturday to Friday,
+      a rider has unlimited passes from a set origin and to a set destination.
+      The pass is valid only during the specified week. The pricing generally
+      works out that it is worth a little less than the fare of four and a half
+      Round Trip tickets. The Flex Pass is another value option; for the price
+      of eight Round Trips, one can get ten Round Trip Passes, with the
+      exception that they must be used within 30 days of purchase. The Monthly
+      Pass is a ticket that grants a rider unlimited Round Trip tickets to and
+      from a fixed origin and destination. It is worth a little more than
+      fourteen Round Trip tickets. Now that we understand the lay of the land, I
+      will detail my experience developing this program.
     </p>
     <p>
-        I started with a misunderstanding of the problem space, actually. I began my development cycle leaving out the
-        Monthly Pass. This would cause some issues later. Fresh off working on `ug`, I wanted to see if I could do
-        something a little more complex than a shell script with Chat GPT Plus. Again, I used gwern's methodology for
-        interacting with GPT with the aim of creating a working program. It didn't work out. For building the structure
-        and layout of the page though, it did it's job perfectly. I didn't have to modify that code at all. I digress.
-        As this is a problem involving finding the minimum cost, I tried to guide GPT into writing a solution around
-        that. The first hurdle involved getting multiple tickets to render as an option, but that was an easy one to
-        clear. Next was setting up the tests. Node.js' built-in test runner has only recently graduated from being an
-        experimental feature, so it was a bit of a pain to get GPT to recognize that this was indeed a valid option, and
-        that I didn't need to use Jest to test my application. Eventually, I got that setup and working. Now, I was
-        really ready to commit to the implement-test GPT cycle.
+      I started with a misunderstanding of the problem space, actually. I began
+      my development cycle leaving out the Monthly Pass. This would cause some
+      issues later. Fresh off working on `ug`, I wanted to see if I could do
+      something a little more complex than a shell script with Chat GPT Plus.
+      Again, I used gwern's methodology for interacting with GPT with the aim of
+      creating a working program. It didn't work out. For building the structure
+      and layout of the page though, it did it's job perfectly. I didn't have to
+      modify that code at all. I digress. As this is a problem involving finding
+      the minimum cost, I tried to guide GPT into writing a solution around
+      that. The first hurdle involved getting multiple tickets to render as an
+      option, but that was an easy one to clear. Next was setting up the tests.
+      Node.js' built-in test runner has only recently graduated from being an
+      experimental feature, so it was a bit of a pain to get GPT to recognize
+      that this was indeed a valid option, and that I didn't need to use Jest to
+      test my application. Eventually, I got that setup and working. Now, I was
+      really ready to commit to the implement-test GPT cycle.
     </p>
     <p>
-        Early on, an issue with identifying consecutive sequences when the month border is crossed popped up. Before, I
-        was just storing the day number in an array, which corresponded to the days that the user had clicked on. I then
-        migrated to using Date objects, as I could then get a better sense of what month it was. This is something I
-        could have done with some modular arithmetic (and this is something I ended up doing in my own implementation
-        later), but for now, this worked. I ran into another issue where optimal choices were not being made: Round
-        Trips were suggested when a Weekly Pass made the most sense. In my notes, here I remarked on the efficacy of
-        using GPT to also write tests. It allowed me to catch stuff like this pretty easily. I then realized that I
-        didn't really understand how the ticketing worked for Weekly Passes, and was able to amend it. I was getting
-        closer, dealing with just a few edge cases. Then I showed it to the "stakeholder" and got some feedback. This
-        changed a lot.
+      Early on, an issue with identifying consecutive sequences when the month
+      border is crossed popped up. Before, I was just storing the day number in
+      an array, which corresponded to the days that the user had clicked on. I
+      then migrated to using Date objects, as I could then get a better sense of
+      what month it was. This is something I could have done with some modular
+      arithmetic (and this is something I ended up doing in my own
+      implementation later), but for now, this worked. I ran into another issue
+      where optimal choices were not being made: Round Trips were suggested when
+      a Weekly Pass made the most sense. In my notes, here I remarked on the
+      efficacy of using GPT to also write tests. It allowed me to catch stuff
+      like this pretty easily. I then realized that I didn't really understand
+      how the ticketing worked for Weekly Passes, and was able to amend it. I
+      was getting closer, dealing with just a few edge cases. Then I showed it
+      to the "stakeholder" and got some feedback. This changed a lot.
     </p>
     <p>
-        I was asked to change some things, and was corrected in my understanding. I didn't really understand the Flex
-        Pass, I just thought it was unlimited in a 30 day window. I was asked to expand the window from the next thirty
-        days, to maybe more, to make room for the Monthly Pass that I wasn't aware of up until then. And then there were
-        some small details that I haven't even factored in yet as I label this project as "finished", like accounting
-        for Light Rail access, which comes bundled with a Monthly Pass, or that trips to Penn Station might have
-        different rules and prices. After this talk with my friend, I put the project down for a while to work on some
-        other stuff.
+      I was asked to change some things, and was corrected in my understanding.
+      I didn't really understand the Flex Pass, I just thought it was unlimited
+      in a 30 day window. I was asked to expand the window from the next thirty
+      days, to maybe more, to make room for the Monthly Pass that I wasn't aware
+      of up until then. And then there were some small details that I haven't
+      even factored in yet as I label this project as "finished", like
+      accounting for Light Rail access, which comes bundled with a Monthly Pass,
+      or that trips to Penn Station might have different rules and prices. After
+      this talk with my friend, I put the project down for a while to work on
+      some other stuff.
     </p>
     <p>
-        I returned to the project a little while later, and found that I couldn't really grok the code, which makes
-        sense -- it's hard enough to push something you haven't thought about back into your mind's context, but it's
-        even harder to do so when you didn't write the code yourself, because the GPT methodology encourages the code to
-        be treated as a black box that you validate mostly with tests that GPT writes. So I then implemented the Monthly
-        Pass and the corrected Flex Pass, and fixed failing tests as a result of these additions. This is where the
-        trouble started to arise. I started going in circles trying to get it to work, so I gave up on GPT and gave
-        Copilot a try. That wasn't very successful either. Both of those services were tough to wrangle into writing
-        code for tests that didn't need to be corrected, which kind of sunk that battleship. So I was left at a
-        crossroad: try to untangle the mess or
-        rewrite the logic from scratch.
+      I returned to the project a little while later, and found that I couldn't
+      really grok the code, which makes sense -- it's hard enough to push
+      something you haven't thought about back into your mind's context, but
+      it's even harder to do so when you didn't write the code yourself, because
+      the GPT methodology encourages the code to be treated as a black box that
+      you validate mostly with tests that GPT writes. So I then implemented the
+      Monthly Pass and the corrected Flex Pass, and fixed failing tests as a
+      result of these additions. This is where the trouble started to arise. I
+      started going in circles trying to get it to work, so I gave up on GPT and
+      gave Copilot a try. That wasn't very successful either. Both of those
+      services were tough to wrangle into writing code for tests that didn't
+      need to be corrected, which kind of sunk that battleship. So I was left at
+      a crossroad: try to untangle the mess or rewrite the logic from scratch.
     </p>
     <p>
-        I decided to start fresh. Having explored the problem with a near-complete implementation once, I now felt that
-        I had a grasp of what the problem was and how best to tackle it. I decided to modularize it, that's the gist. I
-        observed that when a Monthly Pass is applicable, we can select days from the other month. If the logic for the
-        other passes is isolated (previously everything was in one function), then it would be possible to just apply
-        that to that subset of days to produce an optimal ticket. So by breaking it into subproblems, I was able to set
-        myself on the right path. I handled cases where a Weekly Pass would be applicable for five and six days
-        separately, for example. The ideas was to gather all of the ticketing possibilities for a given range of days,
-        then with a pairing of each possibility and the corresponding remaining selected days, I could produce an
-        optimal fare choice using the pairing that had the minimum cost. This was a shift, as before I had the minimum
-        cost at the forefront of my solution. From there, it was like running downhill. I was able to come to a working
-        solution, plus a few small kinks at the boundaries that I had to work out.
+      I decided to start fresh. Having explored the problem with a near-complete
+      implementation once, I now felt that I had a grasp of what the problem was
+      and how best to tackle it. I decided to modularize it, that's the gist. I
+      observed that when a Monthly Pass is applicable, we can select days from
+      the other month. If the logic for the other passes is isolated (previously
+      everything was in one function), then it would be possible to just apply
+      that to that subset of days to produce an optimal ticket. So by breaking
+      it into subproblems, I was able to set myself on the right path. I handled
+      cases where a Weekly Pass would be applicable for five and six days
+      separately, for example. The ideas was to gather all of the ticketing
+      possibilities for a given range of days, then with a pairing of each
+      possibility and the corresponding remaining selected days, I could produce
+      an optimal fare choice using the pairing that had the minimum cost. This
+      was a shift, as before I had the minimum cost at the forefront of my
+      solution. From there, it was like running downhill. I was able to come to
+      a working solution, plus a few small kinks at the boundaries that I had to
+      work out.
     </p>
     <p>
-        There were some cool utilities that I had to write in this process, for example, I re-implemented Set
-        difference, as it is currently only available in Safari because of how new the Set API is. I wrote an
-        interesting expression that checks if there's a valid window in the grouping of extra days mapped to a valid
-        window. The next challenge was getting it to work in the context of Wordpress. In the Gutenberg editor, you add
-        bits and pieces to a Page in the form of a "block". There's one for custom HTML, so the mission became trying to
-        jam all of this into one HTML file. It was pretty seamless. I took the code that Typescript generated and fit it
-        into a script tag, then only had to make a couple modifications: rewriting logic not to use ampersands, moving
-        all of the content to a container div instead of directly in the body element, and creating another container
-        element that allocated a fixed height and width, because the calendar is rendered dynamically, based on what day
-        it is. And that was it.
+      There were some cool utilities that I had to write in this process, for
+      example, I re-implemented Set difference, as it is currently only
+      available in Safari because of how new the Set API is. I wrote an
+      interesting expression that checks if there's a valid window in the
+      grouping of extra days mapped to a valid window. The next challenge was
+      getting it to work in the context of Wordpress. In the Gutenberg editor,
+      you add bits and pieces to a Page in the form of a "block". There's one
+      for custom HTML, so the mission became trying to jam all of this into one
+      HTML file. It was pretty seamless. I took the code that Typescript
+      generated and fit it into a script tag, then only had to make a couple
+      modifications: rewriting logic not to use ampersands, moving all of the
+      content to a container div instead of directly in the body element, and
+      creating another container element that allocated a fixed height and
+      width, because the calendar is rendered dynamically, based on what day it
+      is. And that was it.
     </p>
-</body>
-</head>
+  </body>
+</html>
