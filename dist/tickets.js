@@ -51,7 +51,6 @@ export function calculateOptimalTicket(selectedDates) {
         // so we need to check for other passes
         else {
             optimalTicket = decideLesserTickets(selectedDates);
-            console.log("optimal: ", optimalTicket);
             return optimalTicket;
         }
     }
@@ -66,7 +65,6 @@ export function calculateOptimalTicket(selectedDates) {
         // else the monthly pass is not in play, check for other passes
         else {
             optimalTicket = decideLesserTickets(selectedDates);
-            console.log("optimal: ", optimalTicket);
             return optimalTicket;
         }
     }
@@ -118,8 +116,10 @@ function decideLesserTickets(dates) {
     let min = Infinity;
     let minK = [];
     let minV = [];
+    let vSum = 0;
+    let vDecided;
     let flag = false;
-    for (const [k, v] of m.entries()) {
+    for (let [k, v] of m.entries()) {
         let cur = 0;
         // check if weekly pass
         if (k.length === 5 || k.length === 6 || k.length === 7) {
@@ -137,7 +137,6 @@ function decideLesserTickets(dates) {
         (d) => v.some(
         // d from k matches a vd in v
         (vd) => vd.getDate() === d.getDate())));
-        console.log(vw);
         // so if there is a matching key to our value
         if (vw) {
             // check if it's a flex pass
@@ -150,20 +149,14 @@ function decideLesserTickets(dates) {
             }
         }
         else if (v.length > 4) {
-            const vDecided = decideLesserTickets(v)
-                .reduce((map, elem) => {
-                const ct = map.get(elem) || 0;
-                map.set(elem, ct + 1);
-                return map;
-            }, new Map())
-                .entries();
+            vDecided = decideLesserTickets(v);
             let vSum = 0;
-            for (const [vKey, vVal] of vDecided) {
-                if (vKey === "Weekly Pass") {
-                    vSum += vVal * wp;
+            for (const vTicket of vDecided) {
+                if (vTicket === "Weekly Pass") {
+                    vSum += wp;
                 }
-                else if (vKey === "Round Trip") {
-                    vSum += vVal * rt;
+                else if (vTicket === "Round Trip") {
+                    vSum += rt;
                 }
             }
             cur += vSum;
@@ -195,16 +188,16 @@ function decideLesserTickets(dates) {
     }
     // now for the optimal value
     let withV = [];
-    if (flag) {
-        if (minV.length === 5 || minV.length === 6 || minV.length === 7) {
-            withV = ["Weekly Pass"];
-        }
+    if (vDecided !== undefined) {
+        withV = vDecided;
+    }
+    else if (minV.length === 5 || minV.length === 6 || minK.length === 7) {
+        withV = ["Weekly Pass"];
     }
     else {
         withV = minV.map(() => "Round Trip");
     }
     const ret = withK.concat(withV);
-    console.log(ret);
     return ret;
 }
 /**
