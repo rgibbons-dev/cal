@@ -161,14 +161,14 @@
                 const datesNotInMonthly = datesByMonth[lesserMonthKey];
                 optimalTicket = [
                   "Monthly Pass",
-                  ...decideLesserTickets(datesNotInMonthly, 0),
+                  ...decideLesserTickets(datesNotInMonthly),
                 ];
                 return optimalTicket;
               }
               // the dates span two months but the monthly pass is not valid
               // so we need to check for other passes
               else {
-                optimalTicket = decideLesserTickets(selectedDates, 0);
+                optimalTicket = decideLesserTickets(selectedDates);
                 return optimalTicket;
               }
             }
@@ -182,7 +182,7 @@
               }
               // else the monthly pass is not in play, check for other passes
               else {
-                optimalTicket = decideLesserTickets(selectedDates, 0);
+                optimalTicket = decideLesserTickets(selectedDates);
                 return optimalTicket;
               }
             }
@@ -202,7 +202,7 @@
            *    c) a Flex Pass ticket is a ticket that is valid for 10 round trips within
            *       a 30 day period
            */
-          function decideLesserTickets(dates, cSum) {
+          function decideLesserTickets(dates) {
             // short circuit
             if (dates.length < 5) {
               return dates.map(() => "Round Trip");
@@ -246,8 +246,10 @@
             let minV = [];
             let fullV = [];
             let flag = false;
+	    let vSum = 0;
+	    let vDecided;
             for (const [k, v] of m.entries()) {
-              let cur = cSum;
+              let cur = 0;
               // check if weekly pass
               if (k.length === 5 || k.length === 6 || k.length === 7) {
                 cur += wp;
@@ -285,7 +287,6 @@
                 if (v.length === 5 || v.length === 6 || v.length === 7) {
                   cur += wp;
                 }
-                fullV = v;
               }
               // value is not a valid window but may be a nested window
               else if (v.length > 4) {
@@ -293,33 +294,23 @@
                 // it may be that there are three discrete valid windows
                 // we need to apply decideLesserTickets to the
                 // remainders that do not constitute a window on their own.
-                const iv = decideLesserTickets(v, cur);
-                const vDecided = iv
-                  .reduce((map, elem) => {
-                    const ct = map.get(elem) || 0;
-                    map.set(elem, ct + 1);
-                    return map;
-                  }, new Map())
-                  .entries();
+                vDecided = decideLesserTickets(v);
                 let vSum = 0;
-                if (cSum !== 0) console.log(cSum, Array.from(vDecided), k, v);
-                for (const [vKey, vVal] of vDecided) {
-                  if (vKey === "Weekly Pass") {
-                    vSum += vVal * wp;
-                  } else if (vKey === "Round Trip") {
-                    vSum += vVal * rt;
+                for (const vTicket of vDecided) {
+                  if (vTicket === "Weekly Pass") {
+                    vSum += wp;
+                  } else if (vTicket === "Round Trip") {
+                    vSum += rt;
                   }
                 }
                 cur += vSum;
-                fullV = iv;
               } else {
                 cur += v.length * rt;
-                fullV = v;
               }
               if (cur < min) {
                 min = cur;
                 minK = k;
-                minV = fullV;
+                minV = v;
                 // this should ensure that we know whether
                 // or not the last one is a valid window
                 if (vw) {
@@ -342,15 +333,16 @@
             }
             // now for the optimal value
             let withV = [];
-            if (flag) {
-              if (
+	      if (vDecided !== undefined) {
+	      	withV = vDecided
+	      }
+	      else if (
                 minV.length === 5 ||
                 minV.length === 6 ||
                 minV.length === 7
               ) {
                 withV = ["Weekly Pass"];
-              }
-            } else {
+              } else {
               withV = minV.map(() => "Round Trip");
             }
             return withK.concat(withV);
