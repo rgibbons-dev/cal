@@ -87,6 +87,8 @@ export function calculateOptimalTicket(selectedDates: Date[]) {
   }
 }
 
+function mistake( {
+}
 
 /**
  * A function that takes an array of dates as an argument and returns an array of strings representing the optimal ticket type for each date.
