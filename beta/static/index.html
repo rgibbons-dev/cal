@@ -5,87 +5,124 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Fare Calculator</title>
     <style>
-      @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap');
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+      :root {
+        --gray-50:  hsl(220, 20%, 97%);
+        --gray-100: hsl(220, 16%, 93%);
+        --gray-200: hsl(220, 14%, 86%);
+        --gray-300: hsl(220, 12%, 76%);
+        --gray-400: hsl(220, 10%, 58%);
+        --gray-500: hsl(220, 10%, 44%);
+        --gray-600: hsl(220, 12%, 34%);
+        --gray-700: hsl(220, 14%, 24%);
+        --gray-800: hsl(220, 16%, 16%);
+        --gray-900: hsl(220, 18%, 10%);
+        --blue-50:  hsl(216, 80%, 96%);
+        --blue-500: hsl(216, 70%, 52%);
+        --blue-600: hsl(216, 72%, 44%);
+        --red-50:   hsl(4, 80%, 96%);
+        --red-400:  hsl(4, 60%, 58%);
+        --red-500:  hsl(4, 55%, 50%);
+        --green-500: hsl(152, 50%, 42%);
+        --shadow-sm:  0 1px 2px 0 rgba(0,0,0,0.05);
+        --shadow-md:  0 1px 3px 0 rgba(0,0,0,0.08), 0 1px 2px -1px rgba(0,0,0,0.06);
+        --shadow-lg:  0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -2px rgba(0,0,0,0.05);
+        --radius-sm: 6px;
+        --radius-md: 8px;
+        --radius-lg: 12px;
+      }
 
       * { box-sizing: border-box; margin: 0; padding: 0; }
 
       body {
-        font-family: 'DM Sans', sans-serif;
-        color: #2b2b2b;
-        background: #f4f1ed;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        color: var(--gray-700);
+        background: var(--gray-50);
         min-height: 100vh;
         display: flex;
         justify-content: center;
-        padding: 24px 12px;
+        padding: 32px 16px;
+        -webkit-font-smoothing: antialiased;
       }
 
       .placeholder {
         width: 100%;
-        max-width: 420px;
+        max-width: 440px;
       }
 
       .container {
         display: flex;
         flex-direction: column;
         width: 100%;
-        gap: 14px;
+        gap: 16px;
       }
 
       h1 {
-        font-size: 18px;
-        font-weight: 600;
-        letter-spacing: -0.3px;
-        color: #1a1a1a;
-        margin-bottom: 2px;
+        font-size: 20px;
+        font-weight: 700;
+        letter-spacing: -0.4px;
+        color: var(--gray-900);
+        line-height: 1.2;
       }
 
       .subtitle {
         font-size: 13px;
-        color: #777;
-        font-weight: 300;
-        margin-bottom: 4px;
+        color: var(--gray-400);
+        font-weight: 400;
+        line-height: 1.5;
+        margin-top: 4px;
       }
 
       input, select {
-        font-family: 'DM Sans', sans-serif;
-        font-size: 12px;
-        border: 1.5px solid #d4d0cb;
-        border-radius: 5px;
-        padding: 0 8px;
-        height: 30px;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        font-size: 13px;
+        border: 1px solid var(--gray-200);
+        border-radius: var(--radius-sm);
+        padding: 0 10px;
+        height: 32px;
         background: #fff;
-        color: #2b2b2b;
+        color: var(--gray-700);
         outline: none;
-        transition: border-color 0.15s;
+        transition: border-color 0.15s, box-shadow 0.15s;
         width: 100%;
       }
 
-      input:focus, select:focus { border-color: #999; }
-      input::placeholder { color: #b5b0a8; }
+      input:focus, select:focus {
+        border-color: var(--blue-500);
+        box-shadow: 0 0 0 3px var(--blue-50);
+      }
+
+      input::placeholder { color: var(--gray-300); }
 
       input.disabled-field {
-        background: #f5f4f2;
-        color: #bbb;
+        background: var(--gray-50);
+        color: var(--gray-300);
         cursor: not-allowed;
       }
 
       button {
-        font-family: 'DM Sans', sans-serif;
-        font-size: 12px;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        font-size: 13px;
         font-weight: 500;
-        border: 1.5px solid #d4d0cb;
-        border-radius: 5px;
+        border: 1px solid var(--gray-200);
+        border-radius: var(--radius-sm);
         padding: 0 14px;
-        height: 30px;
+        height: 32px;
         background: #fff;
-        color: #2b2b2b;
+        color: var(--gray-600);
         cursor: pointer;
-        transition: background 0.15s, border-color 0.15s;
+        transition: all 0.15s;
+        box-shadow: var(--shadow-sm);
       }
 
       button:hover {
-        background: #edeae5;
-        border-color: #bbb;
+        background: var(--gray-50);
+        border-color: var(--gray-300);
+      }
+
+      button:active {
+        box-shadow: none;
       }
 
       /* ── Auth bar ── */
@@ -94,53 +131,53 @@
         justify-content: flex-end;
         align-items: center;
         gap: 8px;
-        font-size: 12px;
-        min-height: 30px;
+        font-size: 13px;
+        min-height: 32px;
       }
 
       .auth-bar input {
-        width: 110px;
+        width: 120px;
       }
 
       .auth-bar .auth-user {
-        color: #555;
+        color: var(--gray-500);
         font-weight: 500;
       }
 
       .auth-bar .auth-msg {
-        color: #c0695a;
-        font-size: 11px;
+        color: var(--red-400);
+        font-size: 12px;
       }
 
       /* ── Fare Rules ── */
       .fare-rules-panel {
-        border: 1.5px solid #d4d0cb;
-        border-radius: 8px;
+        border-radius: var(--radius-lg);
         background: #fff;
         overflow: hidden;
+        box-shadow: var(--shadow-md);
       }
 
       .fare-rules-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 10px 12px;
+        padding: 12px 16px;
         cursor: pointer;
         user-select: none;
         transition: background 0.15s;
       }
 
-      .fare-rules-header:hover { background: #faf9f7; }
+      .fare-rules-header:hover { background: var(--gray-50); }
 
       .fare-rules-header span {
-        font-size: 13px;
-        font-weight: 500;
-        letter-spacing: -0.2px;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--gray-800);
       }
 
       .fare-rules-toggle {
-        font-size: 11px;
-        color: #999;
+        font-size: 10px;
+        color: var(--gray-400);
         transition: transform 0.2s;
       }
 
@@ -148,23 +185,23 @@
 
       .fare-rules-body {
         display: none;
-        padding: 0 12px 12px;
+        padding: 0 16px 16px;
       }
 
       .fare-rules-body.open { display: block; }
 
       .fare-rule-card {
-        border: 1.5px solid #eae8e4;
-        border-radius: 6px;
-        padding: 8px;
-        margin-bottom: 6px;
-        background: #fdfcfb;
+        border: 1px solid var(--gray-100);
+        border-radius: var(--radius-md);
+        padding: 10px;
+        margin-bottom: 8px;
+        background: var(--gray-50);
       }
 
       .fare-rule-card .rule-top {
         display: flex;
-        gap: 6px;
-        margin-bottom: 6px;
+        gap: 8px;
+        margin-bottom: 8px;
         align-items: center;
       }
 
@@ -174,34 +211,35 @@
       }
 
       .fare-rule-card .rule-top .rule-type {
-        width: 90px;
+        width: 96px;
         flex-shrink: 0;
       }
 
       .fare-rule-card .rule-top .remove-rule {
-        width: 24px;
-        height: 24px;
-        min-width: 24px;
+        width: 28px;
+        height: 28px;
+        min-width: 28px;
         padding: 0;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 14px;
-        color: #c0695a;
+        font-size: 15px;
+        color: var(--red-400);
         border-color: transparent;
         background: transparent;
-        border-radius: 4px;
+        border-radius: var(--radius-sm);
         flex-shrink: 0;
+        box-shadow: none;
       }
 
       .fare-rule-card .rule-top .remove-rule:hover {
-        background: #fdf0ee;
-        border-color: #e8c4be;
+        background: var(--red-50);
+        color: var(--red-500);
       }
 
       .fare-rule-card .rule-bottom {
         display: flex;
-        gap: 6px;
+        gap: 8px;
       }
 
       .fare-rule-card .field {
@@ -210,33 +248,39 @@
       }
 
       .fare-rule-card .field-label {
-        font-size: 9px;
+        font-size: 10px;
         font-weight: 600;
         text-transform: uppercase;
-        letter-spacing: 0.4px;
-        color: #aaa;
-        margin-bottom: 2px;
+        letter-spacing: 0.5px;
+        color: var(--gray-400);
+        margin-bottom: 4px;
       }
 
       .add-rule-btn {
         width: 100%;
-        margin-top: 2px;
-        font-size: 11px;
+        margin-top: 4px;
+        font-size: 12px;
         border-style: dashed;
-        color: #888;
-        height: 28px;
+        border-color: var(--gray-200);
+        color: var(--gray-400);
+        height: 32px;
+        box-shadow: none;
       }
 
-      .add-rule-btn:hover { color: #555; }
+      .add-rule-btn:hover {
+        color: var(--gray-600);
+        border-color: var(--gray-300);
+        background: var(--gray-50);
+      }
 
       /* ── Ruleset save/load ── */
       .ruleset-bar {
         display: flex;
-        gap: 6px;
+        gap: 8px;
         align-items: center;
-        padding-top: 8px;
-        border-top: 1px solid #eae8e4;
-        margin-top: 4px;
+        padding-top: 12px;
+        border-top: 1px solid var(--gray-100);
+        margin-top: 8px;
       }
 
       .ruleset-bar input {
@@ -251,38 +295,39 @@
 
       .ruleset-bar button {
         flex-shrink: 0;
-        font-size: 11px;
-        height: 28px;
-        padding: 0 10px;
+        font-size: 12px;
+        height: 32px;
+        padding: 0 12px;
       }
 
       .ruleset-msg {
-        font-size: 11px;
-        color: #5aab6e;
-        padding-top: 4px;
+        font-size: 12px;
+        color: var(--green-500);
+        padding-top: 6px;
       }
 
-      .ruleset-msg.error { color: #c0695a; }
+      .ruleset-msg.error { color: var(--red-400); }
 
       /* ── Legend ── */
       .legend {
         display: flex;
-        gap: 12px;
+        gap: 16px;
         align-items: center;
-        font-size: 11px;
-        color: #888;
+        font-size: 12px;
+        color: var(--gray-400);
+        font-weight: 500;
       }
 
       .legend-item {
         display: flex;
         align-items: center;
-        gap: 4px;
+        gap: 6px;
       }
 
       .legend-swatch {
-        width: 10px;
-        height: 10px;
-        border-radius: 2px;
+        width: 12px;
+        height: 12px;
+        border-radius: 3px;
         flex-shrink: 0;
       }
 
@@ -294,55 +339,56 @@
       }
 
       .calendar {
-        border: 1.5px solid #d4d0cb;
-        border-radius: 8px;
+        border-radius: var(--radius-lg);
         overflow: hidden;
         background: #fff;
+        box-shadow: var(--shadow-md);
       }
 
       .header span,
       .days span {
         display: inline-block;
         width: calc(100% / 7);
-        height: 42px;
-        line-height: 42px;
+        height: 44px;
+        line-height: 44px;
         text-align: center;
         font-size: 13px;
       }
 
       .header {
-        background: #3b3735;
-        color: #e8e4df;
+        background: var(--gray-800);
+        color: var(--gray-200);
       }
 
       .header span {
         font-weight: 500;
         font-size: 11px;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
+        letter-spacing: 0.6px;
       }
 
       .days span {
         vertical-align: top;
         cursor: pointer;
         transition: background 0.12s;
-        border-bottom: 1px solid #f0efed;
-        border-right: 1px solid #f0efed;
+        border-bottom: 1px solid var(--gray-100);
+        border-right: 1px solid var(--gray-100);
         font-weight: 400;
+        color: var(--gray-600);
         position: relative;
         -webkit-tap-highlight-color: transparent;
       }
 
-      .days span:hover { background: #f5f3f0; }
+      .days span:hover { background: var(--blue-50); }
 
       .days span.today {
-        font-weight: 600;
-        color: #1a1a1a;
+        font-weight: 700;
+        color: var(--gray-900);
       }
 
       .days span.weekend {
-        background: #faf9f7;
-        color: #aaa;
+        background: var(--gray-50);
+        color: var(--gray-400);
       }
 
       .days span.empty { cursor: default; }
@@ -350,38 +396,38 @@
 
       .days span.has-trips {
         color: #fff;
-        font-weight: 500;
-        text-shadow: 0 1px 2px rgba(0,0,0,0.25);
+        font-weight: 600;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.2);
       }
 
       /* ── Recommendation ── */
       #ticket-recommendation {
-        border: 1.5px solid #d4d0cb;
-        border-radius: 8px;
+        border-radius: var(--radius-lg);
         background: #fff;
-        padding: 14px 16px;
-        font-size: 13px;
+        padding: 16px 20px;
+        font-size: 14px;
         line-height: 1.5;
+        box-shadow: var(--shadow-md);
       }
 
       #ticket-recommendation .label {
-        font-size: 10px;
-        font-weight: 500;
+        font-size: 11px;
+        font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.5px;
-        color: #999;
-        margin-bottom: 4px;
+        color: var(--gray-400);
+        margin-bottom: 6px;
       }
 
       #ticket-recommendation .value {
-        font-weight: 500;
-        color: #1a1a1a;
+        font-weight: 600;
+        color: var(--gray-900);
       }
 
       #ticket-recommendation .cost {
-        font-size: 12px;
-        color: #777;
-        margin-top: 2px;
+        font-size: 13px;
+        color: var(--gray-500);
+        margin-top: 4px;
       }
     </style>
   </head>
@@ -412,10 +458,10 @@
         <!-- Calendar -->
         <div class="cal-toolbar">
           <div class="legend">
-            <div class="legend-item"><div class="legend-swatch" style="background:#c0695a"></div>1</div>
-            <div class="legend-item"><div class="legend-swatch" style="background:#5a8fc0"></div>2</div>
-            <div class="legend-item"><div class="legend-swatch" style="background:#5aab6e"></div>3</div>
-            <div class="legend-item"><div class="legend-swatch" style="background:#c9a84c"></div>4</div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#e05a4a"></div>1</div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#4a90d9"></div>2</div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#38a169"></div>3</div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#d69e2e"></div>4</div>
           </div>
           <button id="reset">Reset</button>
         </div>
@@ -439,10 +485,10 @@
           } from "./optimizer.js";
 
           // ─── Trip colors ───
-          const C1 = "#c0695a";
-          const C2 = "#5a8fc0";
-          const C3 = "#5aab6e";
-          const C4 = "#c9a84c";
+          const C1 = "#e05a4a";
+          const C2 = "#4a90d9";
+          const C3 = "#38a169";
+          const C4 = "#d69e2e";
 
           function tripBackground(n) {
             switch (n) {

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -13,7 +14,7 @@ import (
 	"sync"
 	"time"
 
-	_ "github.com/mattn/go-sqlite3"
+	"github.com/mattn/go-sqlite3"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -23,6 +24,7 @@ var (
 		sync.RWMutex
 		m map[string]sessionEntry
 	}{m: make(map[string]sessionEntry)}
+	secureCookies bool
 )
 
 type sessionEntry struct {
@@ -100,12 +102,27 @@ func getSession(r *http.Request) *sessionEntry {
 	return &s
 }
 
+func reapExpiredSessions() {
+	for {
+		time.Sleep(15 * time.Minute)
+		now := time.Now()
+		sessions.Lock()
+		for tok, s := range sessions.m {
+			if now.After(s.expires) {
+				delete(sessions.m, tok)
+			}
+		}
+		sessions.Unlock()
+	}
+}
+
 func setSessionCookie(w http.ResponseWriter, tok string) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     "session",
 		Value:    tok,
 		Path:     "/",
 		HttpOnly: true,
+		Secure:   secureCookies,
 		SameSite: http.SameSiteLaxMode,
 		MaxAge:   7 * 24 * 3600,
 	})
@@ -117,8 +134,85 @@ func clearSessionCookie(w http.ResponseWriter) {
 		Value:    "",
 		Path:     "/",
 		HttpOnly: true,
+		Secure:   secureCookies,
 		SameSite: http.SameSiteLaxMode,
 		MaxAge:   -1,
+	})
+}
+
+// ---------- Rate limiter ----------
+
+type rateLimiter struct {
+	sync.Mutex
+	attempts map[string][]time.Time
+	window   time.Duration
+	max      int
+}
+
+func newRateLimiter(window time.Duration, max int) *rateLimiter {
+	return &rateLimiter{
+		attempts: make(map[string][]time.Time),
+		window:   window,
+		max:      max,
+	}
+}
+
+func (rl *rateLimiter) allow(ip string) bool {
+	rl.Lock()
+	defer rl.Unlock()
+	now := time.Now()
+	cutoff := now.Add(-rl.window)
+
+	// Prune old entries
+	recent := rl.attempts[ip][:0]
+	for _, t := range rl.attempts[ip] {
+		if t.After(cutoff) {
+			recent = append(recent, t)
+		}
+	}
+
+	if len(recent) >= rl.max {
+		rl.attempts[ip] = recent
+		return false
+	}
+	rl.attempts[ip] = append(recent, now)
+	return true
+}
+
+var authLimiter = newRateLimiter(1*time.Minute, 10)
+
+func clientIP(r *http.Request) string {
+	if fwd := r.Header.Get("X-Forwarded-For"); fwd != "" {
+		if i := strings.IndexByte(fwd, ','); i != -1 {
+			return strings.TrimSpace(fwd[:i])
+		}
+		return strings.TrimSpace(fwd)
+	}
+	// Strip port from RemoteAddr
+	addr := r.RemoteAddr
+	if i := strings.LastIndex(addr, ":"); i != -1 {
+		return addr[:i]
+	}
+	return addr
+}
+
+// ---------- Middleware ----------
+
+func securityHeaders(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("X-Frame-Options", "DENY")
+		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
+		next.ServeHTTP(w, r)
+	})
+}
+
+func maxBodySize(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost || r.Method == http.MethodPut || r.Method == http.MethodPatch {
+			r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1 MB
+		}
+		next.ServeHTTP(w, r)
 	})
 }
 
@@ -135,6 +229,11 @@ func jsonOK(w http.ResponseWriter, v any) {
 	json.NewEncoder(w).Encode(v)
 }
 
+func requireJSON(r *http.Request) bool {
+	ct := r.Header.Get("Content-Type")
+	return strings.HasPrefix(ct, "application/json")
+}
+
 // ---------- Auth handlers ----------
 
 type authReq struct {
@@ -145,6 +244,14 @@ type authReq struct {
 func handleSignup(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		jsonErr(w, 405, "method not allowed")
+		return
+	}
+	if !requireJSON(r) {
+		jsonErr(w, 415, "Content-Type must be application/json")
+		return
+	}
+	if !authLimiter.allow(clientIP(r)) {
+		jsonErr(w, 429, "too many requests, try again later")
 		return
 	}
 	var req authReq
@@ -161,6 +268,10 @@ func handleSignup(w http.ResponseWriter, r *http.Request) {
 		jsonErr(w, 400, "password must be at least 6 characters")
 		return
 	}
+	if len(req.Password) > 72 {
+		jsonErr(w, 400, "password must be at most 72 characters")
+		return
+	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
@@ -170,8 +281,12 @@ func handleSignup(w http.ResponseWriter, r *http.Request) {
 
 	res, err := db.Exec("INSERT INTO users (username, pwhash) VALUES (?, ?)", req.Username, string(hash))
 	if err != nil {
-		if strings.Contains(err.Error(), "UNIQUE") {
-			jsonErr(w, 409, "username already taken")
+		var sqliteErr sqlite3.Error
+		if errors.As(err, &sqliteErr) && sqliteErr.ExtendedCode == sqlite3.ErrConstraintUnique {
+			// Return success to prevent username enumeration.
+			// The user won't get a session, but the response looks identical
+			// to a real signup from the attacker's perspective.
+			jsonOK(w, map[string]string{"username": req.Username})
 			return
 		}
 		jsonErr(w, 500, "internal error")
@@ -186,6 +301,14 @@ func handleSignup(w http.ResponseWriter, r *http.Request) {
 func handleLogin(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		jsonErr(w, 405, "method not allowed")
+		return
+	}
+	if !requireJSON(r) {
+		jsonErr(w, 415, "Content-Type must be application/json")
+		return
+	}
+	if !authLimiter.allow(clientIP(r)) {
+		jsonErr(w, 429, "too many requests, try again later")
 		return
 	}
 	var req authReq
@@ -261,6 +384,10 @@ func handleSaveRuleset(w http.ResponseWriter, r *http.Request) {
 		jsonErr(w, 405, "method not allowed")
 		return
 	}
+	if !requireJSON(r) {
+		jsonErr(w, 415, "Content-Type must be application/json")
+		return
+	}
 	s := getSession(r)
 	if s == nil {
 		jsonErr(w, 401, "sign in to save rulesets")
@@ -323,6 +450,10 @@ func handleDeleteRuleset(w http.ResponseWriter, r *http.Request) {
 		jsonErr(w, 405, "method not allowed")
 		return
 	}
+	if !requireJSON(r) {
+		jsonErr(w, 415, "Content-Type must be application/json")
+		return
+	}
 	s := getSession(r)
 	if s == nil {
 		jsonErr(w, 401, "sign in required")
@@ -344,28 +475,31 @@ func handleDeleteRuleset(w http.ResponseWriter, r *http.Request) {
 func main() {
 	initDB()
 
-	// API
-	http.HandleFunc("/api/signup", handleSignup)
-	http.HandleFunc("/api/login", handleLogin)
-	http.HandleFunc("/api/logout", handleLogout)
-	http.HandleFunc("/api/me", handleMe)
-	http.HandleFunc("/api/rulesets", handleListRulesets)
-	http.HandleFunc("/api/rulesets/save", handleSaveRuleset)
-	http.HandleFunc("/api/rulesets/delete", handleDeleteRuleset)
+	secureCookies = os.Getenv("SECURE_COOKIES") == "true"
 
-	// Static files
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/" || r.URL.Path == "/index.html" {
-			http.ServeFile(w, r, "static/index.html")
-			return
-		}
-		http.ServeFile(w, r, "static"+r.URL.Path)
-	})
+	go reapExpiredSessions()
+
+	mux := http.NewServeMux()
+
+	// API
+	mux.HandleFunc("/api/signup", handleSignup)
+	mux.HandleFunc("/api/login", handleLogin)
+	mux.HandleFunc("/api/logout", handleLogout)
+	mux.HandleFunc("/api/me", handleMe)
+	mux.HandleFunc("/api/rulesets", handleListRulesets)
+	mux.HandleFunc("/api/rulesets/save", handleSaveRuleset)
+	mux.HandleFunc("/api/rulesets/delete", handleDeleteRuleset)
+
+	// Static files — http.FileServer handles path sanitization
+	mux.Handle("/", http.FileServer(http.Dir("static")))
+
+	// Middleware chain: security headers → body size limit → mux
+	handler := securityHeaders(maxBodySize(mux))
 
 	port := "8080"
 	if p := os.Getenv("PORT"); p != "" {
 		port = p
 	}
 	fmt.Printf("Fare calculator running at http://localhost:%s\n", port)
-	log.Fatal(http.ListenAndServe(":"+port, nil))
+	log.Fatal(http.ListenAndServe(":"+port, handler))
 }
